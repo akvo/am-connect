@@ -1,0 +1,43 @@
+{#
+  Capability-aware action buttons for one resource (server-side twin of the JS Resources tab).
+  desc = h.amconnect_describe_resource(res)
+#}
+{% set desc = h.amconnect_describe_resource(res) %}
+{% set caps = desc.capabilities %}
+{% set is_service = desc.service_type in ('wms', 'wfs', 'wcs', 'wmts') %}
+{# the layer this resource belongs to: sibling services (WFS/WCS next to a WMS) provide the downloads #}
+{% set layer = namespace(value=None) %}
+{% if is_service %}
+  {% for l in h.amconnect_describe_dataset(pkg).layers %}
+    {% if res.id in l.resource_ids %}{% set layer.value = l %}{% endif %}
+  {% endfor %}
+{% endif %}
+{% set downloads = desc.downloads if desc.downloads else (layer.value.downloads if layer.value else []) %}
+{% set via_sibling = (not desc.downloads) and downloads %}
+{% if desc.service_type == 'wms' and caps.view %}
+  <li><a class="btn btn-primary" href="{{ h.url_for('amconnect.dataset_map_embed', id=pkg.name, layers=res.id) }}"><i class="fa fa-map"></i> {{ _('View on map') }}</a></li>
+{% endif %}
+{% if desc.service_type == 'wfs' and caps.query %}
+  <li><a class="btn btn-default" href="{{ h.url_for('amconnect.dataset_map', id=pkg.name, tab='analysis') }}"><i class="fa fa-search"></i> {{ _('Query features') }}</a></li>
+{% endif %}
+{% if desc.service_type == 'wcs' and caps.area_statistics %}
+  <li><a class="btn btn-default" href="{{ h.url_for('amconnect.dataset_map', id=pkg.name, tab='analysis') }}"><i class="fa fa-calculator"></i> {{ _('Area statistics') }}</a></li>
+{% endif %}
+{% for dl in downloads %}
+  <li><a class="btn btn-success" href="{{ dl.url }}" target="_blank" rel="noopener" title="{{ dl.media_type or '' }}{% if via_sibling %} (via the layer's {{ dl.service | upper }} service){% endif %}"><i class="fa fa-arrow-circle-down"></i> {{ dl.label if dl.service == 'file' else _('Download') ~ ' ' ~ dl.label }}</a></li>
+{% endfor %}
+{% if desc.export_map_image %}
+  <li><a class="btn btn-default" href="{{ desc.export_map_image }}" target="_blank" rel="noopener" title="{{ _('WMS GetMap of the full extent: a picture, not the data') }}"><i class="fa fa-image"></i> {{ _('Export map image') }}</a></li>
+{% endif %}
+{% if is_service %}
+  <li><a class="btn btn-default" href="{{ desc.endpoint }}{{ '&' if '?' in desc.endpoint else '?' }}SERVICE={{ desc.service_type | upper }}&REQUEST=GetCapabilities" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> {{ _('View source') }}</a></li>
+  {% if desc.status == 'unreachable' %}
+    <li><span class="badge bg-danger" title="{{ desc.status_detail }}">{{ _('Service unreachable') }}</span></li>
+  {% elif desc.status == 'layer_not_found' %}
+    <li><span class="badge bg-danger" title="{{ desc.status_detail }}">{{ _('Layer not found on service') }}</span></li>
+  {% elif desc.service_type == 'wms' and not downloads %}
+    <li><span class="badge bg-secondary" title="{{ _('No WFS/WCS behind this WMS: the data itself cannot be downloaded') }}">{{ _('View only') }}</span></li>
+  {% endif %}
+{% elif res.url and h.is_url(res.url) and not desc.downloads %}
+  <li><a class="btn btn-primary" href="{{ res.url }}" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> {{ _('Go to resource') }}</a></li>
+{% endif %}

@@ -1,0 +1,19 @@
+{% ckan_extends %}
+
+{% block package_additional_info %}
+  {% for field in h.amconnect_dataset_fields() %}
+    {% if pkg_dict[field.name] and field.name != 'spatial' %}
+      <tr>
+        <th scope="row" class="dataset-label">{{ _(field.label) }}</th>
+        <td class="dataset-details">{{ pkg_dict[field.name] }}</td>
+      </tr>
+    {% endif %}
+  {% endfor %}
+  {% if pkg_dict.spatial %}
+    <tr>
+      <th scope="row" class="dataset-label">{{ _('Spatial extent') }}</th>
+      <td class="dataset-details"><code style="white-space: normal; word-break: break-all">{{ pkg_dict.spatial | truncate(160) }}</code></td>
+    </tr>
+  {% endif %}
+  {{ super() }}
+{% endblock %}

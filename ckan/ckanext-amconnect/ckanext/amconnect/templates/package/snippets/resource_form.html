@@ -1,0 +1,9 @@
+{% ckan_extends %}
+
+{% block basic_fields_format %}
+  {{ super() }}
+  {{ form.input('layer_name', id='field-layer-name', label=_('Layer name (WMS layer / WFS type / WCS coverage)'),
+                value=data.layer_name or data.wms_layer, error=errors.layer_name,
+                placeholder=_('e.g. amconnect:thailand_geology (only for OGC service resources)'),
+                classes=['control-full']) }}
+{% endblock %}

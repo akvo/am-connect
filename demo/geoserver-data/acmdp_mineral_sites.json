@@ -1,0 +1,54 @@
+{
+  "name": "acmdp-mineral-occurrences",
+  "title": "ACMDP mineral occurrences (4,183 sites)",
+  "notes": "Mineral occurrences, deposits and mines from the ASEAN Critical Minerals Data Platform (acmdp.org), scraped from the public record pages and republished as one point layer. 4,183 sites in 9 countries: Vietnam (1643), Indonesia (1472), Lao PDR (363), Thailand (232), Philippines (134), Malaysia (113). Main commodities: Limestone for Cement (381), Stone for Tiling, Fine Arts (360), Nickel (340), Tin (282), Gold (245), Cement Lightning (163), Iron (139), Limestone (139).\n\nEach point carries the ACMDP record ids, the flattened metadata sections (general information, geology, ore deposit, licence and copyright) and a link back to the source page. Source data remains the property of the registrants named in each record; see the licence fields per feature.",
+  "country": "ASEAN",
+  "commodity": "Multiple",
+  "data_type": "geospatial",
+  "access_level": "public-download",
+  "license_id": "other-at",
+  "tags": [
+    "minerals",
+    "acmdp",
+    "asean",
+    "occurrences",
+    "points"
+  ],
+  "spatial": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [
+          94.0,
+          -10.593
+        ],
+        [
+          139.686,
+          -10.593
+        ],
+        [
+          139.686,
+          24.232
+        ],
+        [
+          94.0,
+          24.232
+        ],
+        [
+          94.0,
+          -10.593
+        ]
+      ]
+    ]
+  },
+  "resource_name": "ACMDP mineral occurrences (WMS)",
+  "resource_description": "Point layer amconnect:acmdp_mineral_sites on the POC GeoServer, styled by commodity type; alternate styles by country, status and deposit type.",
+  "extra_resources": [
+    {
+      "name": "ACMDP portal (source)",
+      "description": "ASEAN Critical Minerals Data Platform, the origin of every record.",
+      "url": "https://acmdp.org/",
+      "format": "HTML"
+    }
+  ]
+}

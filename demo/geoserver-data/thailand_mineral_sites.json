@@ -1,0 +1,17 @@
+{
+  "name": "thailand-mineral-sites",
+  "title": "Thailand Mineral Sites (synthetic, 200 points)",
+  "notes": "200 synthetic mineral occurrence points (commodity, status, grade, year) generated for the AMConnect POC to test point layers: WMS rendering, GetFeatureInfo, WFS queries/downloads and area statistics. Not real data.",
+  "country": "Thailand",
+  "commodity": "Multiple",
+  "data_type": "geospatial",
+  "access_level": "public-download",
+  "tags": [
+    "minerals",
+    "thailand",
+    "points",
+    "synthetic"
+  ],
+  "resource_name": "Mineral sites (WMS)",
+  "resource_description": "Point layer amconnect:thailand_mineral_sites rendered by the POC GeoServer, styled by commodity."
+}

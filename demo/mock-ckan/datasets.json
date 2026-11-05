@@ -1,0 +1,67 @@
+{
+  "_comment": "Fake remote CKAN catalogue harvested by CKAN's ckan_harvester. Edit and re-run showcase/05-harvest-lifecycle.sh to see updates propagate. Ids must be UUIDs (they become the local dataset ids).",
+  "organizations": [
+    {"id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "name": "jmg-malaysia", "title": "Minerals and Geoscience Department Malaysia (mock)",
+     "description": "Mock organisation from the remote catalogue", "is_organization": true, "type": "organization", "state": "active", "approval_status": "approved"}
+  ],
+  "datasets": [
+    {
+      "id": "6f1c1a2e-0001-4c3b-9a5e-000000000001",
+      "name": "world-countries-natural-earth",
+      "title": "World country boundaries (Natural Earth 1:10m) - mock federated",
+      "notes": "Country boundaries published by a partner GeoServer (ahocevar.com, the OpenLayers examples server). Harvested into AMConnect from a mock member-state CKAN. Both WMS and WFS are offered by the remote server, so the layer is viewable AND downloadable if the remote is reachable.",
+      "type": "dataset",
+      "state": "active",
+      "private": false,
+      "license_id": "other-pd",
+      "metadata_modified": "2026-09-10T08:00:00.000000",
+      "owner_org": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+      "organization": {"id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "name": "jmg-malaysia", "title": "Minerals and Geoscience Department Malaysia (mock)"},
+      "tags": [{"name": "boundaries"}, {"name": "natural-earth"}, {"name": "federated"}],
+      "extras": [
+        {"key": "spatial", "value": "{\"type\":\"Polygon\",\"coordinates\":[[[-180,-90],[180,-90],[180,90],[-180,90],[-180,-90]]]}"},
+        {"key": "country", "value": "Global"},
+        {"key": "commodity", "value": ""},
+        {"key": "data_type", "value": "geospatial"},
+        {"key": "access_level", "value": "public-download"}
+      ],
+      "resources": [
+        {"id": "6f1c1a2e-0001-4c3b-9a5e-00000000a001", "name": "Countries (WMS)", "format": "WMS",
+         "url": "https://ahocevar.com/geoserver/wms", "layer_name": "ne:ne_10m_admin_0_countries",
+         "description": "WMS view service on the partner GeoServer"},
+        {"id": "6f1c1a2e-0001-4c3b-9a5e-00000000a002", "name": "Countries (WFS)", "format": "WFS",
+         "url": "https://ahocevar.com/geoserver/wfs", "layer_name": "ne:ne_10m_admin_0_countries",
+         "description": "WFS feature service on the partner GeoServer (GeoJSON / GML / CSV / Shapefile download)"}
+      ]
+    },
+    {
+      "id": "6f1c1a2e-0002-4c3b-9a5e-000000000002",
+      "name": "malaysia-mineral-occurrences-mock",
+      "title": "Malaysia mineral occurrences (mock, view-only WMS)",
+      "notes": "Illustrative record from a mock member-state CKAN. The only service is an external WMS with no WFS/WCS behind it, so AMConnect must present it as view-only. (The WMS URL points at the OpenStreetMap WMS of terrestris because no real service exists for this mock record.)",
+      "type": "dataset",
+      "state": "active",
+      "private": false,
+      "license_id": "cc-by",
+      "metadata_modified": "2026-09-10T08:00:00.000000",
+      "owner_org": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+      "organization": {"id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d", "name": "jmg-malaysia", "title": "Minerals and Geoscience Department Malaysia (mock)"},
+      "tags": [{"name": "minerals"}, {"name": "malaysia"}, {"name": "federated"}],
+      "extras": [
+        {"key": "spatial", "value": "{\"type\":\"Polygon\",\"coordinates\":[[[99.6,0.8],[119.3,0.8],[119.3,7.4],[99.6,7.4],[99.6,0.8]]]}"},
+        {"key": "country", "value": "Malaysia"},
+        {"key": "commodity", "value": "Tin"},
+        {"key": "data_type", "value": "geospatial"},
+        {"key": "access_level", "value": "public-view"}
+      ],
+      "resources": [
+        {"id": "6f1c1a2e-0002-4c3b-9a5e-00000000a001", "name": "Mineral occurrences (WMS, view only)", "format": "WMS",
+         "url": "https://ows.terrestris.de/osm/service", "layer_name": "OSM-WMS",
+         "description": "External WMS only; no download service exists"},
+        {"id": "6f1c1a2e-0002-4c3b-9a5e-00000000a002", "name": "Occurrence report (PDF)", "format": "PDF",
+         "url": "https://www.jmg.gov.my/example-report.pdf",
+         "description": "Non-spatial document resource (link only)"}
+      ]
+    }
+  ]
+}

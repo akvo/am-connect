@@ -1,0 +1,16 @@
+{% ckan_extends %}
+
+{% block content_primary_nav %}
+  {{ super() }}
+  {% if h.amconnect_wms_layers(pkg) %}
+    {{ h.build_nav_icon('amconnect.dataset_map', _('Map'), id=pkg.name, icon='map') }}
+  {% endif %}
+{% endblock %}
+
+{% block secondary_content %}
+  {{ super() }}
+  {# ckanext-spatial's dataset extent widget (Leaflet), fed by the "spatial" extra #}
+  {% if pkg.spatial %}
+    {% snippet "spatial/snippets/dataset_map.html", extent=pkg.spatial %}
+  {% endif %}
+{% endblock %}

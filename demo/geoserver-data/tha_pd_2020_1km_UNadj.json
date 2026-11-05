@@ -1,0 +1,12 @@
+{
+  "name": "thailand-population-density-2020",
+  "title": "Thailand Population Density 2020 (1 km, UN adjusted)",
+  "notes": "WorldPop estimated population density for Thailand, 2020, 1 km resolution, adjusted to UN national totals. People per square kilometre per pixel.\n\nRaster (GeoTIFF, Float32) served by the POC GeoServer over WMS with a colour ramp style.",
+  "country": "Thailand",
+  "commodity": "",
+  "data_type": "geospatial",
+  "access_level": "public-view",
+  "tags": ["population", "thailand", "worldpop", "raster", "wms"],
+  "resource_name": "Population density 2020 (local GeoServer WMS, raster)",
+  "resource_description": "Coverage amconnect:tha_pd_2020_1km_UNadj published by the POC GeoServer from a GeoTIFF."
+}

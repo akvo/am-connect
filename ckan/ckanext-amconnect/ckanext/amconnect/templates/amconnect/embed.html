@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+{#
+  Standalone GIS view for iframe embedding or as a preview of a non-CKAN frontend:
+    /dataset/<id>/map/embed?tab=map|analysis|resources|overview&bbox=w,s,e,n&layers=<resource ids>
+  No CKAN base template, no CKAN JS: the page is an HTML shell plus the component.
+#}
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ pkg.title }} - AMConnect GIS view</title>
+  {% snippet 'amconnect/snippets/gis_assets.html' %}
+  <style>html, body { margin: 0; height: 100%; } .agis-mount { height: 100%; }</style>
+</head>
+<body>
+  <div id="amconnect-gis-dataset" class="agis-mount"></div>
+  <script>
+    new AmconnectGIS(document.getElementById('amconnect-gis-dataset'), {{ h.dump_json(gis_options) | safe }});
+  </script>
+</body>
+</html>

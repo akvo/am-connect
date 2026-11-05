@@ -1,0 +1,4 @@
+{% import 'macros/form.html' as form %}
+{{ form.input('wms_layer', id='field-view-wms-layer', label=_('WMS layer (override)'),
+              value=data.wms_layer, error=errors.wms_layer,
+              placeholder=_('Leave empty to use the resource wms_layer field')) }}

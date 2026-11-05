@@ -1,0 +1,54 @@
+# pycsw configuration for the AMConnect POC "mock external SDI" (a CSW 2.0.2 / ISO 19139 catalogue).
+# Records in ./records are loaded at container start (see docker-compose.yml command).
+server:
+    url: http://pycsw:8000   # base URL advertised in GetCapabilities (pycsw appends /csw); must be reachable from the CKAN container
+    mimetype: application/xml; charset=UTF-8
+    encoding: UTF-8
+    language: en-US
+    maxrecords: 10
+    timeout: 30
+    gzip_compresslevel: 0
+logging:
+    level: INFO
+profiles:
+    - apiso
+manager:
+    transactions: false
+    allowed_ips:
+        - 127.0.0.1
+metadata:
+    identification:
+        title: Mock external SDI catalogue (CSW / ISO 19139)
+        description: Stand-in for a CCOP / member-state spatial data infrastructure catalogue, harvested by AMConnect's CKAN through ckanext-spatial's csw_harvester.
+        keywords: [catalogue, discovery, metadata, mock]
+        keywords_type: theme
+        fees: None
+        accessconstraints: None
+        terms_of_service: https://creativecommons.org/licenses/by/4.0
+        url: http://pycsw:8000   # base URL advertised in GetCapabilities (pycsw appends /csw); must be reachable from the CKAN container
+    license:
+        name: CC-BY 4.0 license
+        url: https://creativecommons.org/licenses/by/4.0
+    provider:
+        name: Mock SDI
+        url: http://pycsw:8000   # base URL advertised in GetCapabilities (pycsw appends /csw); must be reachable from the CKAN container
+    contact:
+        name: Mock, Contact
+        position: Catalogue administrator
+        address: n/a
+        city: n/a
+        stateorprovince: n/a
+        postalcode: n/a
+        country: n/a
+        phone: n/a
+        fax: n/a
+        email: mock@example.org
+        url: http://pycsw:8000   # base URL advertised in GetCapabilities (pycsw appends /csw); must be reachable from the CKAN container
+        hours: n/a
+        instructions: n/a
+        role: pointOfContact
+    inspire:
+        enabled: false
+repository:
+    database: sqlite:////tmp/pycsw-records.db
+    table: records

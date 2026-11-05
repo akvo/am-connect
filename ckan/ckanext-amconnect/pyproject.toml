@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ckanext-amconnect"
+version = "0.2.0"
+description = "AMConnect POC: dataset fields, service/capability model, /api/amconnect facade, GIS view and harvest glue for CKAN"
+requires-python = ">=3.9"
+dependencies = []
+
+[project.entry-points."ckan.plugins"]
+amconnect = "ckanext.amconnect.plugin:AmconnectPlugin"
+amconnect_wms_view = "ckanext.amconnect.plugin:AmconnectWmsViewPlugin"
+amconnect_ckan_harvester = "ckanext.amconnect.harvesters:AmconnectCKANHarvester"
+amconnect_csw_harvester = "ckanext.amconnect.harvesters:AmconnectCSWHarvester"
+
+[tool.setuptools.packages.find]
+include = ["ckanext*"]
+
+[tool.setuptools.package-data]
+"ckanext.amconnect" = ["templates/**/*", "public/**/*"]
+
+[tool.black]
+line-length = 79
+skip-string-normalization = true
+
+[tool.isort]
+profile = "black"
+line_length = 79
+known_first_party = ["ckanext.amconnect"]

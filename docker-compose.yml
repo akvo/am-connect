@@ -1,0 +1,226 @@
+# AMConnect local development stack.
+#
+#   platform     : frontend (Next.js), backend (FastAPI)
+#   data service : ckan, solr, redis, geoserver
+#   shared       : db (one PostGIS server, one database per service), keycloak, pgadmin
+#   demo profile : geoserver-seed, mock-ckan, pycsw (see README "Demo data")
+
+services:
+  # ------------------------------------------------------------ platform
+  frontend:
+    image: node:26-alpine
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "3000:3000"
+    command: sh -c "npm install -g pnpm@12 && pnpm install && pnpm dev"
+    environment:
+      NEXT_TELEMETRY_DISABLED: 1
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+
+  backend:
+    build: ./backend
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      db: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql+psycopg://platform:platform@db/platform
+
+  # ------------------------------------------------------------ data service
+  ckan:
+    build: ./ckan
+    depends_on:
+      db: { condition: service_healthy }
+      solr: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      # demo profile only: the seed derives dataset extents from GeoServer, so layers must be published first
+      geoserver-seed: { condition: service_completed_successfully, required: false }
+      mock-ckan: { condition: service_started, required: false }
+      pycsw: { condition: service_started, required: false }
+    ports:
+      - "5000:5000"
+    environment:
+      CKAN_SITE_URL: http://localhost:5000
+      CKAN_SQLALCHEMY_URL: postgresql://ckan:ckan@db/ckan
+      CKAN_SOLR_URL: http://solr:8983/solr/ckan
+      CKAN_REDIS_URL: redis://redis:6379/0
+      CKAN_SYSADMIN_NAME: ${CKAN_SYSADMIN_NAME:-admin}
+      CKAN_SYSADMIN_PASSWORD: ${CKAN_SYSADMIN_PASSWORD:-admin12345}
+      CKAN_SYSADMIN_EMAIL: ${CKAN_SYSADMIN_EMAIL:-admin@example.org}
+      CKAN__PLUGINS: image_view text_view resource_proxy envvars spatial_metadata spatial_query harvest geo_view geojson_view amconnect amconnect_wms_view amconnect_ckan_harvester amconnect_csw_harvester
+      CKAN__VIEWS__DEFAULT_VIEWS: image_view text_view amconnect_wms_view
+      # ckanext-spatial: index the real geometry in Solr (needs the -spatial solr image)
+      CKANEXT__SPATIAL__SEARCH_BACKEND: solr-spatial-field
+      CKANEXT__SPATIAL__COMMON_MAP__TYPE: custom
+      CKANEXT__SPATIAL__COMMON_MAP__CUSTOM__URL: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+      CKANEXT__SPATIAL__COMMON_MAP__ATTRIBUTION: "&copy; OpenStreetMap contributors"
+      CKAN__HARVEST__MQ__TYPE: redis
+      CKAN__HARVEST__MQ__HOSTNAME: redis
+      CKANEXT__GEOVIEW__OL_VIEWER__FORMATS: wms wfs geojson kml gml
+      CKANEXT__GEOVIEW__OL_VIEWER__HIDE_OVERLAYS: "false"
+      CKAN__SITE_TITLE: AMConnect
+      CKAN__AUTH__CREATE_USER_VIA_WEB: "false"
+      CKANEXT__AMCONNECT__GEOSERVER_PUBLIC_URL: http://localhost:8080/geoserver   # as seen from the browser
+      CKANEXT__AMCONNECT__GEOSERVER_INTERNAL_URL: http://geoserver:8080/geoserver # as seen from this container
+      CKANEXT__AMCONNECT__GEOSERVER_WORKSPACE: amconnect
+      CKANEXT__AMCONNECT__DATA_DIR: /amconnect-data
+      # demo only: seed example datasets / run the demo harvest sources at start
+      AMCONNECT_SEED: ${AMCONNECT_SEED:-false}
+      AMCONNECT_HARVEST: ${AMCONNECT_HARVEST:-false}
+    volumes:
+      - ckan_storage:/var/lib/ckan
+      - ./ckan/ckanext-amconnect:/srv/app/src/ckanext-amconnect
+      - ./demo/geoserver-data:/amconnect-data:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:5000"]
+      interval: 15s
+      timeout: 10s
+      retries: 20
+    restart: unless-stopped
+
+  solr:
+    image: ckan/ckan-solr:2.11-solr9-spatial
+    volumes:
+      - solr_data:/var/solr
+    healthcheck:
+      test: ["CMD", "wget", "-qO", "/dev/null", "http://localhost:8983/solr/"]
+      interval: 10s
+      timeout: 10s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "-e", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  geoserver:
+    image: docker.osgeo.org/geoserver:2.26.2
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "8080:8080"
+    environment:
+      GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
+      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
+      SKIP_DEMO_DATA: "true"
+      CORS_ENABLED: "true"
+      PROXY_BASE_URL: http://localhost:8080/geoserver
+      EXTRA_JAVA_OPTS: -Xms256m -Xmx1g
+    volumes:
+      - geoserver_data:/opt/geoserver_data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:8080/geoserver/rest/about/version.json -u $${GEOSERVER_ADMIN_USER}:$${GEOSERVER_ADMIN_PASSWORD} >/dev/null || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 40
+    restart: unless-stopped
+
+  # ------------------------------------------------------------ shared
+  db:
+    image: postgis/postgis:16-3.5
+    volumes:
+      - ./db/init/20-databases.sql:/docker-entrypoint-initdb.d/20-databases.sql:ro
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_PASSWORD: password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.5
+    command: start-dev --import-realm
+    depends_on:
+      db: { condition: service_healthy }
+    ports:
+      - "8180:8080"
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db/keycloak
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./keycloak/realm-amconnect.json:/opt/keycloak/data/import/realm-amconnect.json:ro
+
+  pgadmin:
+    image: dpage/pgadmin4:9
+    depends_on:
+      - db
+    ports:
+      - "5050:5050"
+    environment:
+      PGADMIN_LISTEN_PORT: 5050
+      PGADMIN_DEFAULT_EMAIL: dev@akvo.org
+      PGADMIN_DEFAULT_PASSWORD: password
+    volumes:
+      - ./pgadmin4/servers.json:/pgadmin4/servers.json:ro
+      - pgadmin_data:/var/lib/pgadmin
+
+  # ------------------------------------------------------------ demo profile
+  geoserver-seed:
+    profiles: [demo]
+    build: ./geoserver/seed
+    depends_on:
+      db: { condition: service_healthy }
+      geoserver: { condition: service_healthy }
+    environment:
+      GEOSERVER_URL: http://geoserver:8080/geoserver
+      GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
+      GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
+      POSTGIS_HOST: db
+      POSTGIS_DB: gis
+      POSTGIS_USER: gis
+      POSTGIS_PASSWORD: gis
+    volumes:
+      - ./demo/geoserver-data:/data:ro
+      - ./geoserver/styles:/styles:ro
+    restart: "no"
+
+  mock-ckan:
+    # a fake remote CKAN (ASEAN member-state catalogue) to exercise harvesting
+    profiles: [demo]
+    image: python:3.12-alpine
+    command: ["python", "/app/server.py"]
+    environment:
+      PORT: "5001"
+    volumes:
+      - ./demo/mock-ckan:/app:ro
+    ports:
+      - "5001:5001"
+
+  pycsw:
+    # a fake remote SDI: CSW 2.0.2 catalogue with ISO 19139 records
+    profiles: [demo]
+    image: geopython/pycsw:latest
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        rm -f /tmp/pycsw-records.db &&
+        /venv/bin/pycsw-admin.py setup-repository -c /etc/pycsw/pycsw.yml &&
+        /venv/bin/pycsw-admin.py load-records -c /etc/pycsw/pycsw.yml -p /records -r &&
+        exec /venv/bin/python3 /usr/local/bin/entrypoint.py
+    volumes:
+      - ./demo/pycsw/pycsw.yml:/etc/pycsw/pycsw.yml:ro
+      - ./demo/pycsw/records:/records:ro
+    ports:
+      - "8001:8000"
+
+volumes:
+  db_data:
+  ckan_storage:
+  solr_data:
+  geoserver_data:
+  pgadmin_data:

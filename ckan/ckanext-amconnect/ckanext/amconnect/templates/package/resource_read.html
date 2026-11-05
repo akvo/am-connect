@@ -1,0 +1,12 @@
+{% ckan_extends %}
+
+{# Replace CKAN's single "Download / Go to resource" button by capability-aware actions #}
+{% block resource_actions_inner %}
+  {% block action_manage %}
+    {% if h.check_access('package_update', {'id':pkg.id }) %}
+      <li>{% link_for _('Edit resource'), named_route=pkg.type ~ '_resource.edit', id=pkg.name, resource_id=res.id, class_='btn btn-default', icon='pencil' %}</li>
+      <li>{% link_for _('Views'), named_route=pkg.type ~ '_resource.views', id=pkg.name, resource_id=res.id, class_='btn btn-default', icon='chart-bar' %}</li>
+    {% endif %}
+  {% endblock action_manage %}
+  {% snippet 'amconnect/snippets/resource_actions.html', res=res, pkg=pkg %}
+{% endblock %}

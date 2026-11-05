@@ -1,0 +1,31 @@
+{% ckan_extends %}
+
+{# Dataset page resource list: replace the misleading "Download" entry by capability-aware links #}
+{% block resource_item_explore_links %}
+  {% block explore_view %}
+    <li>
+      <a class="dropdown-item" href="{{ url }}">
+        {% if res.has_views %}<i class="fa fa-chart-bar"></i> {{ _('Preview') }}{% else %}<i class="fa fa-info-circle"></i> {{ _('More information') }}{% endif %}
+      </a>
+    </li>
+  {% endblock explore_view %}
+  {% set desc = h.amconnect_describe_resource(res) %}
+  {% set layer = namespace(value=None) %}
+  {% for l in h.amconnect_describe_dataset(pkg).layers %}{% if res.id in l.resource_ids %}{% set layer.value = l %}{% endif %}{% endfor %}
+  {% set downloads = desc.downloads if desc.downloads else (layer.value.downloads if layer.value else []) %}
+  {% if desc.service_type == 'wms' %}
+    <li><a class="dropdown-item" href="{{ h.url_for('amconnect.dataset_map', id=pkg.name, layers=res.id) }}"><i class="fa fa-map"></i> {{ _('View on map') }}</a></li>
+  {% endif %}
+  {% for dl in downloads %}
+    <li><a class="dropdown-item" href="{{ dl.url }}" target="_blank" rel="noopener"><i class="fa fa-arrow-circle-down"></i> {{ dl.label if dl.service == 'file' else _('Download') ~ ' ' ~ dl.label }}</a></li>
+  {% endfor %}
+  {% if desc.service_type in ('wms', 'wfs', 'wcs', 'wmts') %}
+    <li><a class="dropdown-item" href="{{ desc.endpoint }}{{ '&' if '?' in desc.endpoint else '?' }}SERVICE={{ desc.service_type | upper }}&REQUEST=GetCapabilities" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> {{ _('View source') }}{% if desc.service_type == 'wms' and not downloads %} ({{ _('view only') }}){% endif %}</a></li>
+  {% elif res.url and h.is_url(res.url) and not downloads %}
+    <li><a class="dropdown-item" href="{{ res.url }}" target="_blank" rel="noopener"><i class="fa fa-external-link"></i> {{ _('Go to resource') }}</a></li>
+  {% endif %}
+  {% if can_edit %}
+    <li>{% link_for _('Edit resource'), named_route=pkg.type ~ '_resource.edit', id=pkg.name, resource_id=res.id, class_='dropdown-item', icon='pencil' %}</li>
+    <li>{% link_for _('Views'), named_route=pkg.type ~ '_resource.views', id=pkg.name, resource_id=res.id, class_='dropdown-item', icon='chart-bar' %}</li>
+  {% endif %}
+{% endblock %}

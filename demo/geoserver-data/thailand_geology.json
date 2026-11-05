@@ -1,0 +1,20 @@
+{
+  "name": "thailand-geological-map",
+  "title": "Thailand Geological Map",
+  "notes": "Simplified geological units of Thailand served from the POC GeoServer over WMS, plus an external (federated) WMS resource.\n\n**Note:** the local layer is *illustrative* synthetic data generated for this proof of concept; it is not a real geological survey product.",
+  "country": "Thailand",
+  "commodity": "General Geology",
+  "data_type": "geospatial",
+  "access_level": "public-view",
+  "tags": ["geology", "thailand", "wms"],
+  "resource_name": "Geological units (local GeoServer WMS)",
+  "resource_description": "Layer amconnect:thailand_geology published by the POC GeoServer from PostGIS.",
+  "extra_resources": [
+    {
+      "name": "OpenStreetMap (external WMS, terrestris)",
+      "description": "Federated example: a third-party WMS endpoint that is not hosted in this stack.",
+      "url": "https://ows.terrestris.de/osm/service",
+      "wms_layer": "OSM-WMS"
+    }
+  ]
+}

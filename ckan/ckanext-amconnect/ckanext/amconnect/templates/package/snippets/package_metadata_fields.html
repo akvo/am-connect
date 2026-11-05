@@ -1,0 +1,20 @@
+{% ckan_extends %}
+
+{% block dataset_fields %}
+  {# AMConnect custom dataset fields (see ckanext.amconnect.plugin.DATASET_FIELDS) #}
+  {% for field in h.amconnect_dataset_fields() %}
+    {% if field.choices %}
+      {% set options = [{'value': '', 'text': '-'}] %}
+      {% for c in field.choices %}{% do options.append({'value': c, 'text': c}) %}{% endfor %}
+      {{ form.select(field.name, id='field-' ~ field.name, label=_(field.label),
+                     options=options, selected=data[field.name], error=errors[field.name]) }}
+    {% elif field.widget == 'textarea' %}
+      {{ form.textarea(field.name, id='field-' ~ field.name, label=_(field.label),
+                       value=data[field.name], error=errors[field.name],
+                       placeholder=_('GeoJSON geometry, e.g. {"type":"Polygon","coordinates":[[[97,5],[106,5],[106,21],[97,21],[97,5]]]}')) }}
+    {% else %}
+      {{ form.input(field.name, id='field-' ~ field.name, label=_(field.label),
+                    value=data[field.name], error=errors[field.name], classes=['control-medium']) }}
+    {% endif %}
+  {% endfor %}
+{% endblock %}

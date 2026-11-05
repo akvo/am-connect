@@ -1,0 +1,27 @@
+{
+  "name": "lao-mineral-map-ccop",
+  "title": "Lao PDR 1:1M Mineral Map (CCOP GSi, federated WMS)",
+  "notes": "Mineral occurrences of Lao PDR from the LAO DOM 1:1,000,000 Mineral Map, published by the CCOP Geoinformation Sharing Infrastructure (ccop-gsi.org) as a dynamic WMS (MapServer). This record only points at the partner service: AMConnect does not host the data. The WMS is queryable (GetFeatureInfo as text/html, GML or text/plain), has a legend, but exposes no WFS/WCS, so the layer is view-only in AMConnect.",
+  "country": "Lao PDR",
+  "commodity": "Multiple",
+  "data_type": "geospatial",
+  "access_level": "public-view",
+  "license_id": "other-at",
+  "tags": ["minerals", "lao-pdr", "ccop", "federated", "wms"],
+  "spatial": {"type": "Polygon", "coordinates": [[[100.206, 14.293], [107.479, 14.293], [107.479, 22.411], [100.206, 22.411], [100.206, 14.293]]]},
+  "resources": [
+    {
+      "name": "Mineral occurrences of Lao PDR (CCOP WMS)",
+      "description": "WMS 1.3.0 endpoint on ccop-gsi.org (MapServer). Layer M_portal_maps_min_occur_lao_table_table1_20170907164402_k1E, queryable. No CORS headers, so browser-side GetFeatureInfo falls back to a link.",
+      "url": "https://ccop-gsi.org/ows/dynamic_wms/2017/M_portal_maps_min_occur_lao_table_table1_20170907164402_k1E_wms",
+      "format": "WMS",
+      "layer_name": "M_portal_maps_min_occur_lao_table_table1_20170907164402_k1E"
+    },
+    {
+      "name": "CCOP GSi portal",
+      "description": "Source portal of the map (link).",
+      "url": "https://ccop-gsi.org/",
+      "format": "HTML"
+    }
+  ]
+}

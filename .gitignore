@@ -1,0 +1,16 @@
+.env
+.tmp-commit-msg
+
+# python
+__pycache__/
+*.pyc
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# editor / os
+.vscode/
+.idea/
+*.swp
+.DS_Store

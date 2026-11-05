@@ -1,0 +1,13 @@
+{#
+  Mounts the GIS component.
+  options: dict passed to new AmconnectGIS(el, options) -- see public/amconnect/amconnect-gis.js
+#}
+{% snippet 'amconnect/snippets/gis_assets.html' %}
+<div id="amconnect-gis-{{ options.resourceId or 'dataset' }}" class="agis-mount" style="{{ style or '' }}"></div>
+<script>
+  (function () {
+    var el = document.getElementById('amconnect-gis-{{ options.resourceId or 'dataset' }}');
+    var init = function () { new AmconnectGIS(el, {{ h.dump_json(options) | safe }}); };
+    if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', init); } else { init(); }
+  })();
+</script>

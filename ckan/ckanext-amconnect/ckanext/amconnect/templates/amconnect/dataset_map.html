@@ -1,0 +1,28 @@
+{% extends "package/read_base.html" %}
+
+{% block subtitle %}{{ _('Map') }} - {{ h.dataset_display_name(pkg) }}{% endblock %}
+
+{# full-width: widen CKAN's fixed container and drop the sidebar for this page #}
+{% block styles %}
+  {{ super() }}
+  <style>
+    #content.container { max-width: none; width: 100%; padding-left: 16px; padding-right: 16px; }
+    .amconnect-map-page .module-content { padding-left: 8px; padding-right: 8px; }
+    .amconnect-map-page .agis__pane--map { height: max(520px, calc(100vh - 380px)); }
+  </style>
+{% endblock %}
+{% block maintag %}<div class="main amconnect-map-page">{% endblock %}
+{% block secondary %}{% endblock %}
+{% block primary %}
+  <div class="primary col-md-12" role="main">
+    {% block primary_content %}{{ super() }}{% endblock %}
+  </div>
+{% endblock %}
+
+{% block primary_content_inner %}
+  {% snippet 'amconnect/snippets/gis_view.html', options=gis_options %}
+  <p class="text-muted small" style="margin-top: .75em">
+    {{ _('This view is built entirely from') }} <code>{{ gis_options.api }}</code>.
+    {{ _('Standalone / embeddable version:') }} <a href="{{ gis_options.embedUrl }}">{{ gis_options.embedUrl }}</a>
+  </p>
+{% endblock %}

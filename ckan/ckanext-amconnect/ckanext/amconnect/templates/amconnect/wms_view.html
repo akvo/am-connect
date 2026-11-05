@@ -1,0 +1,10 @@
+{# Resource view: the GIS component in single-resource (compact) mode #}
+{% set options = {'api': h.url_for('amconnect_api.dataset', id=package.name),
+                  'resourceId': resource.id, 'compact': True,
+                  'datasetUrl': h.url_for('dataset.read', id=package.name),
+                  'embedUrl': h.url_for('amconnect.dataset_map_embed', id=package.name, layers=resource.id, _external=True)} %}
+{% snippet 'amconnect/snippets/gis_view.html', options=options, style='height: 480px' %}
+<p class="text-muted small" style="margin-top:.5em">
+  {{ _('Layer') }}: <code>{{ wms_layer }}</code> &middot;
+  <a href="{{ h.url_for('amconnect.dataset_map', id=package.name) }}">{{ _('Open the full GIS view (all layers, analysis, downloads)') }}</a>
+</p>

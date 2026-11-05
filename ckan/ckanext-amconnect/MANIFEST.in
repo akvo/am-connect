@@ -1,0 +1,2 @@
+recursive-include ckanext/amconnect/templates *
+recursive-include ckanext/amconnect/assets *
