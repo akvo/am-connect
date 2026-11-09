@@ -383,6 +383,10 @@ def seed(data_dir, no_harvest_sources):
         "ckanext.amconnect.data_dir", "/amconnect-data"
     )
     owner_org = config.get("ckanext.amconnect.owner_org", ORG["name"])
+    services.PROBE_AUTH = (
+        config.get("ckanext.amconnect.geoserver_admin_user"),
+        config.get("ckanext.amconnect.geoserver_admin_password"),
+    )
 
     sysadmin = _sysadmin_name()
 

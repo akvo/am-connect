@@ -82,6 +82,9 @@ services:
       CKANEXT__AMCONNECT__GEOSERVER_PUBLIC_URL: http://localhost:8080/geoserver   # as seen from the browser
       CKANEXT__AMCONNECT__GEOSERVER_INTERNAL_URL: http://geoserver:8080/geoserver # as seen from this container
       CKANEXT__AMCONNECT__GEOSERVER_WORKSPACE: amconnect
+      # `ckan amconnect seed` only: layers are restricted, the seed reads their extents as admin
+      CKANEXT__AMCONNECT__GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
+      CKANEXT__AMCONNECT__GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
       CKANEXT__AMCONNECT__DATA_DIR: /amconnect-data
       CKANEXT__AMCONNECT__KEYCLOAK__PUBLIC_URL: http://localhost:8180
       CKANEXT__AMCONNECT__KEYCLOAK__INTERNAL_URL: http://keycloak:8080
@@ -120,7 +123,7 @@ services:
       retries: 20
 
   geoserver:
-    image: docker.osgeo.org/geoserver:2.26.2
+    image: docker.osgeo.org/geoserver:3.0.1
     depends_on:
       db: { condition: service_healthy }
     ports:
@@ -129,11 +132,18 @@ services:
       GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
       GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
       SKIP_DEMO_DATA: "true"
+      INSTALL_EXTENSIONS: "true"
+      STABLE_EXTENSIONS: sec-oidc
+      KEYCLOAK_PUBLIC_URL: http://localhost:8180
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       CORS_ENABLED: "true"
       PROXY_BASE_URL: http://localhost:8080/geoserver
       EXTRA_JAVA_OPTS: -Xms256m -Xmx1g
+    # Keycloak bearer auth + `amconnect` layers restricted to geoserver-access, see the script
+    entrypoint: ["/amconnect-entrypoint.sh"]
     volumes:
       - geoserver_data:/opt/geoserver_data
+      - ./geoserver/entrypoint.sh:/amconnect-entrypoint.sh:ro
     healthcheck:
       test: ["CMD-SHELL", "curl -fs http://localhost:8080/geoserver/rest/about/version.json -u $${GEOSERVER_ADMIN_USER}:$${GEOSERVER_ADMIN_PASSWORD} >/dev/null || exit 1"]
       interval: 15s

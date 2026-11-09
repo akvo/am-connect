@@ -237,7 +237,8 @@ def smoke_test(name):
     url = (f"{GS}/{WORKSPACE}/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap"
            f"&LAYERS={WORKSPACE}:{name}&STYLES=&SRS=EPSG:4326&BBOX=97,5,106,21"
            f"&WIDTH=128&HEIGHT=128&FORMAT=image/png")
-    with urllib.request.urlopen(url, timeout=120) as resp:
+    req = urllib.request.Request(url, headers={"Authorization": AUTH})  # layers are restricted
+    with urllib.request.urlopen(req, timeout=120) as resp:
         ctype = resp.headers.get("Content-Type", "")
         size = len(resp.read())
     if not ctype.startswith("image/png"):

@@ -142,6 +142,9 @@ CAPABILITY_KEYS = (
 
 PROBE_TTL = 300  # seconds
 PROBE_TIMEOUT = 8  # seconds per remote request
+# (user, password) for GetCapabilities probes. Set only by the `seed` CLI command:
+# hosted layers need geoserver-access, and the web process must not see restricted ones.
+PROBE_AUTH = None
 _cache = {}
 _cache_lock = threading.Lock()
 
@@ -325,6 +328,7 @@ def _get_capabilities(endpoint, service, version):
     resp = requests.get(
         full,
         timeout=PROBE_TIMEOUT,
+        auth=PROBE_AUTH,
         headers={
             "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8",
             "User-Agent": "Mozilla/5.0 (compatible; AMConnect-CKAN/0.2; +ckanext-amconnect)",
