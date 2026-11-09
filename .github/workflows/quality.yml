@@ -1,0 +1,73 @@
+# Code checks: the same `make` targets developers run, on the runner instead of compose.
+name: quality
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: postgis/postgis:16-3.5
+        env:
+          POSTGRES_USER: platform
+          POSTGRES_PASSWORD: platform
+          POSTGRES_DB: platform
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U platform" --health-interval 5s --health-retries 20
+    env:
+      BACKEND: uv run --directory backend
+      DATABASE_URL: postgresql+psycopg://platform:platform@localhost/platform
+      KEYCLOAK_INTERNAL_URL: http://keycloak.invalid
+      KEYCLOAK_ISSUER: http://keycloak.invalid/realms/amconnect
+      PLATFORM_CLIENT_SECRET: test
+      PLATFORM_ADMIN_CLIENT_SECRET: test
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # diff-cover compares with the base branch
+      - uses: astral-sh/setup-uv@v10
+      - run: make check-python
+      - run: make test
+      - name: Coverage of changed backend lines (80% minimum)
+        if: github.event_name == 'pull_request'
+        working-directory: backend
+        run: >-
+          uv run diff-cover coverage.xml
+          --compare-branch=origin/${{ github.base_ref }} --fail-under=80
+
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      FRONTEND: pnpm --dir frontend
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+      - run: npm install -g pnpm@12
+      - run: pnpm --dir frontend install --frozen-lockfile
+      - run: make check-frontend
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: make docs
+      - name: Prose lint of the PR description (reports only)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          printf '%s\n' "$BODY" > pr-description.md
+          docker run --rm -v "$PWD":/docs -w /docs jdkato/vale:v3.25.0 pr-description.md
+
