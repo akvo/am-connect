@@ -38,8 +38,11 @@ SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(current_user)]
 
 
+APP_ROLES = {"super-admin", "user-manager", "ckan-access", "geoserver-access"}
+
+
 def roles_of(claims: dict) -> set[str]:
-    return set(claims.get("realm_access", {}).get("roles", []))
+    return set(claims.get("realm_access", {}).get("roles", [])) & APP_ROLES
 
 
 def grantable_roles(inviter_roles: set[str]) -> set[str]:

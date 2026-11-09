@@ -17,7 +17,14 @@ services:
     command: sh -c "npm install -g pnpm@12 && pnpm install && pnpm dev"
     environment:
       NEXT_TELEMETRY_DISABLED: 1
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      AUTH_URL: http://localhost:3000
+      AUTH_SECRET: ${AUTH_SECRET:-dev-auth-secret-change-me}
+      BACKEND_INTERNAL_URL: http://backend:8000
+      GEOSERVER_INTERNAL_URL: http://geoserver:8080/geoserver
+      KEYCLOAK_ISSUER: http://localhost:8180/realms/amconnect
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
+      GOOGLE_LOGIN_ENABLED: ${GOOGLE_CLIENT_ID:+true}
 
   backend:
     build: ./backend
