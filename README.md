@@ -26,16 +26,62 @@ Reset everything with `docker compose down -v`.
 
 | Service | URL | Login |
 |---|---|---|
-| Frontend | http://localhost:3000 | |
+| Frontend | http://localhost:3000 | super admin `admin@example.org` / `admin12345` |
 | Backend | http://localhost:8000/docs, `/health` | |
-| CKAN | http://localhost:5000 | `admin` / `admin12345` |
+| CKAN | http://localhost:5000 | Keycloak users, or local sysadmin `admin` / `admin12345` |
 | GeoServer | http://localhost:8080/geoserver | `admin` / `geoserver` |
-| Keycloak | http://localhost:8180 | `admin` / `admin` |
+| Keycloak admin console (developers only) | http://localhost:8180/admin | `admin` / `admin` |
+| Mailpit (outgoing mail) | http://localhost:8025 | |
 | pgAdmin | http://localhost:5050 | `dev@akvo.org` / `password` |
 | Postgres | `localhost:5432` | `postgres` / `password` |
 
 Databases (user = password = name): `ckan`, `keycloak`, `platform`, `gis`.
 They are created by `db/init/20-databases.sql` on the first start of an empty volume only.
+
+## Users and access
+
+Keycloak holds every account; users never see a Keycloak page. Platform and CKAN show
+their own login forms and check passwords with Keycloak server-side. Google login only
+redirects through Keycloak to Google.
+
+| Realm role | Grants |
+|---|---|
+| `super-admin` | can grant `user-manager` |
+| `user-manager` | can invite users (Platform `/invite`), granting only access they hold |
+| `ckan-access` | can log in to CKAN; without it CKAN refuses the login and creates no account |
+| `geoserver-access` | can read `amconnect` GeoServer layers with `Authorization: Bearer <access token>` |
+
+Invitations are emailed (see Mailpit); the link lets the invitee set name and password,
+or continue with Google. The super admin comes from `SUPERADMIN_EMAIL` /
+`SUPERADMIN_PASSWORD` in `.env`.
+
+Keycloak config lives in `keycloak/realm-amconnect.json` and is imported only into an
+empty database: after editing it, recreate Keycloak's data with
+
+```bash
+docker compose rm -fsv keycloak
+docker compose exec db psql -U postgres -c 'DROP DATABASE keycloak' -c 'CREATE DATABASE keycloak OWNER keycloak'
+docker compose up -d keycloak
+```
+
+GeoServer's Keycloak filter and layer rule are written by `geoserver/entrypoint.sh` at
+every start.
+
+Check the whole flow against the running stack (with demo data loaded, see below):
+
+```bash
+./scripts/e2e-issue-1.sh
+```
+
+### Google login
+
+1. In Google Cloud console, create an OAuth client (Web application) with redirect URI
+   `http://localhost:8180/realms/amconnect/broker/google/endpoint`.
+2. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`, recreate Keycloak's data
+   (above), and `docker compose up -d`. The "Continue with Google" buttons appear.
+
+Google logs in only an invited email; anyone else sees an AMConnect-styled Keycloak page
+asking for an invitation.
 
 ## Backend
 
@@ -43,7 +89,7 @@ Migrations run on container start (`alembic upgrade head`). Code reloads on save
 
 ```bash
 docker compose exec backend pytest
-docker compose exec backend alembic revision --autogenerate -m "add thing"
+docker compose exec -u "$(id -u):$(id -g)" backend alembic revision --autogenerate -m "add thing"
 docker compose exec backend ruff check .
 ```
 
