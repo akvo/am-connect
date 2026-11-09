@@ -17,6 +17,7 @@ Drop folder convention (/data, i.e. ./demo/geoserver-data on the host):
 The published layer is always  amconnect:<name>.
 Set FORCE=1 to re-upload rasters whose coverage store already exists.
 """
+
 import base64
 import glob
 import json
@@ -99,8 +100,11 @@ def pg_conn():
 
 
 def postgis_ready():
-    out = subprocess.run(["ogrinfo", "-q", "-so", pg_conn(), "-sql", "SELECT postgis_version()"],
-                         capture_output=True, text=True)
+    out = subprocess.run(
+        ["ogrinfo", "-q", "-so", pg_conn(), "-sql", "SELECT postgis_version()"],
+        capture_output=True,
+        text=True,
+    )
     return out.returncode == 0
 
 
@@ -114,7 +118,9 @@ def sidecar(name):
 
 def layer_name(path):
     base = os.path.basename(path)
-    return base[:-len(next(e for e in VECTOR_EXT + RASTER_EXT if base.lower().endswith(e)))]
+    return base[
+        : -len(next(e for e in VECTOR_EXT + RASTER_EXT if base.lower().endswith(e)))
+    ]
 
 
 def discover():
@@ -135,15 +141,25 @@ def ensure_workspace_and_datastore():
         print(f"[seed] created workspace {WORKSPACE}")
 
     ds_path = f"/workspaces/{WORKSPACE}/datastores/{DATASTORE}"
-    ds_body = {"dataStore": {
-        "name": DATASTORE, "type": "PostGIS", "enabled": True,
-        "connectionParameters": {"entry": [
-            {"@key": "dbtype", "$": "postgis"},
-            {"@key": "host", "$": PG_HOST}, {"@key": "port", "$": PG_PORT},
-            {"@key": "database", "$": PG_DB}, {"@key": "schema", "$": "public"},
-            {"@key": "user", "$": PG_USER}, {"@key": "passwd", "$": PG_PASS},
-            {"@key": "Expose primary keys", "$": "true"},
-        ]}}}
+    ds_body = {
+        "dataStore": {
+            "name": DATASTORE,
+            "type": "PostGIS",
+            "enabled": True,
+            "connectionParameters": {
+                "entry": [
+                    {"@key": "dbtype", "$": "postgis"},
+                    {"@key": "host", "$": PG_HOST},
+                    {"@key": "port", "$": PG_PORT},
+                    {"@key": "database", "$": PG_DB},
+                    {"@key": "schema", "$": "public"},
+                    {"@key": "user", "$": PG_USER},
+                    {"@key": "passwd", "$": PG_PASS},
+                    {"@key": "Expose primary keys", "$": "true"},
+                ]
+            },
+        }
+    }
     if exists(ds_path + ".json"):
         rest("PUT", ds_path + ".json", ds_body)
     else:
@@ -156,17 +172,38 @@ def publish_vector(path):
     name = layer_name(path)
     meta = sidecar(name)
     print(f"[seed] vector {os.path.basename(path)} -> PostGIS table {name}")
-    subprocess.check_call([
-        "ogr2ogr", "-f", "PostgreSQL", pg_conn(), path,
-        "-nln", name, "-overwrite", "-t_srs", "EPSG:4326",
-        "-lco", "GEOMETRY_NAME=geom", "-lco", "FID=gid", "-nlt", "PROMOTE_TO_MULTI",
-    ])
+    subprocess.check_call(
+        [
+            "ogr2ogr",
+            "-f",
+            "PostgreSQL",
+            pg_conn(),
+            path,
+            "-nln",
+            name,
+            "-overwrite",
+            "-t_srs",
+            "EPSG:4326",
+            "-lco",
+            "GEOMETRY_NAME=geom",
+            "-lco",
+            "FID=gid",
+            "-nlt",
+            "PROMOTE_TO_MULTI",
+        ]
+    )
     ds_path = f"/workspaces/{WORKSPACE}/datastores/{DATASTORE}"
     ft_path = f"{ds_path}/featuretypes/{name}"
-    ft_body = {"featureType": {
-        "name": name, "nativeName": name,
-        "title": meta.get("title", name), "abstract": meta.get("notes", ""),
-        "srs": "EPSG:4326", "enabled": True}}
+    ft_body = {
+        "featureType": {
+            "name": name,
+            "nativeName": name,
+            "title": meta.get("title", name),
+            "abstract": meta.get("notes", ""),
+            "srs": "EPSG:4326",
+            "enabled": True,
+        }
+    }
     if exists(ft_path + ".json"):
         rest("PUT", ft_path + ".json", ft_body)
         print(f"[seed]   feature type {name} updated")
@@ -182,20 +219,37 @@ def publish_raster(path):
     meta = sidecar(name)
     cs_path = f"/workspaces/{WORKSPACE}/coveragestores/{name}"
     if exists(cs_path + ".json") and not FORCE:
-        print(f"[seed] raster {os.path.basename(path)}: coverage store exists, skipping upload (FORCE=1 to redo)")
+        print(
+            f"[seed] raster {os.path.basename(path)}: coverage store exists, skipping upload (FORCE=1 to redo)"
+        )
     else:
-        print(f"[seed] raster {os.path.basename(path)} -> uploading to coverage store {name}")
+        print(
+            f"[seed] raster {os.path.basename(path)} -> uploading to coverage store {name}"
+        )
         with open(path, "rb") as fh:
             data = fh.read()
         # PUT .../file.geotiff uploads the file into the GeoServer data dir and
         # creates store + coverage + layer in one go.
-        rest("PUT", f"{cs_path}/file.geotiff?configure=first&coverageName={name}",
-             data, content_type="image/tiff")
+        rest(
+            "PUT",
+            f"{cs_path}/file.geotiff?configure=first&coverageName={name}",
+            data,
+            content_type="image/tiff",
+        )
         print(f"[seed]   coverage {name} published ({len(data)} bytes)")
     cov_path = f"{cs_path}/coverages/{name}.json"
     if exists(cov_path):
-        rest("PUT", cov_path, {"coverage": {
-            "title": meta.get("title", name), "abstract": meta.get("notes", ""), "enabled": True}})
+        rest(
+            "PUT",
+            cov_path,
+            {
+                "coverage": {
+                    "title": meta.get("title", name),
+                    "abstract": meta.get("notes", ""),
+                    "enabled": True,
+                }
+            },
+        )
     apply_style(name)
 
 
@@ -205,10 +259,16 @@ def upload_style(style_name, sld_file):
         sld = fh.read()
     style_path = f"/workspaces/{WORKSPACE}/styles/{style_name}"
     if exists(style_path + ".json"):
-        rest("PUT", style_path + ".sld", sld, content_type="application/vnd.ogc.sld+xml")
+        rest(
+            "PUT", style_path + ".sld", sld, content_type="application/vnd.ogc.sld+xml"
+        )
     else:
-        rest("POST", f"/workspaces/{WORKSPACE}/styles?name={style_name}", sld,
-             content_type="application/vnd.ogc.sld+xml")
+        rest(
+            "POST",
+            f"/workspaces/{WORKSPACE}/styles?name={style_name}",
+            sld,
+            content_type="application/vnd.ogc.sld+xml",
+        )
 
 
 def apply_style(name):
@@ -221,7 +281,7 @@ def apply_style(name):
         print(f"[seed]   style {name}.sld applied")
     alternates = []
     for path in sorted(glob.glob(os.path.join(STYLE_DIR, name + "__*.sld"))):
-        variant = os.path.basename(path)[len(name) + 2:-4]
+        variant = os.path.basename(path)[len(name) + 2 : -4]
         style_name = f"{name}_{variant}"
         upload_style(style_name, path)
         alternates.append({"name": f"{WORKSPACE}:{style_name}"})
@@ -234,10 +294,14 @@ def apply_style(name):
 
 # -------------------------------------------------------------- smoke test
 def smoke_test(name):
-    url = (f"{GS}/{WORKSPACE}/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap"
-           f"&LAYERS={WORKSPACE}:{name}&STYLES=&SRS=EPSG:4326&BBOX=97,5,106,21"
-           f"&WIDTH=128&HEIGHT=128&FORMAT=image/png")
-    req = urllib.request.Request(url, headers={"Authorization": AUTH})  # layers are restricted
+    url = (
+        f"{GS}/{WORKSPACE}/wms?SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap"
+        f"&LAYERS={WORKSPACE}:{name}&STYLES=&SRS=EPSG:4326&BBOX=97,5,106,21"
+        f"&WIDTH=128&HEIGHT=128&FORMAT=image/png"
+    )
+    req = urllib.request.Request(
+        url, headers={"Authorization": AUTH}
+    )  # layers are restricted
     with urllib.request.urlopen(req, timeout=120) as resp:
         ctype = resp.headers.get("Content-Type", "")
         size = len(resp.read())

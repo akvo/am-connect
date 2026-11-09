@@ -26,6 +26,7 @@ Resource model written per hosted layer (see services.py):
     raster  ->  WMS resource (view) + WCS resource (download)
 Idempotent: re-running updates in place and keeps resource ids (matched by name).
 """
+
 import glob
 import json
 import os

@@ -27,6 +27,7 @@ The probes use OWSLib (already installed for ckanext-spatial) on the *internal*
 GeoServer URL when the resource points at the public one, so CKAN can probe
 inside the Docker network while browsers keep using the public URL.
 """
+
 import logging
 import re
 import threading
@@ -296,9 +297,7 @@ def harvest_info(pkg):
                 "frequency": src.get("frequency"),
             }
         )
-    except (
-        Exception
-    ):  # noqa: BLE001 - harvest plugin missing or source deleted
+    except Exception:  # noqa: BLE001 - harvest plugin missing or source deleted
         pass
     return info
 
@@ -527,9 +526,9 @@ def describe_resource(resource, pkg=None, probe=True):
     endpoint, layer = desc["endpoint"], desc["layer_name"]
 
     if svc == "wms":
-        caps[
-            "view"
-        ] = True  # the browser can always try GetMap; the probe refines the rest
+        caps["view"] = (
+            True  # the browser can always try GetMap; the probe refines the rest
+        )
         if probe:
             info = probe_wms(endpoint)
             desc["cors"] = info.get("cors")

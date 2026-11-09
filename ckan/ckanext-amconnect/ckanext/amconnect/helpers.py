@@ -1,4 +1,5 @@
 """Template helpers. All the logic lives in services.py; these only add per-request caching."""
+
 from flask import g
 
 from ckanext.amconnect import services

@@ -26,7 +26,9 @@ export default async function InvitePage({
     });
     if (!r.ok) {
       const { detail } = await r.json();
-      redirect(`/invite?error=${encodeURIComponent(typeof detail === "string" ? detail : "Invalid input")}`);
+      redirect(
+        `/invite?error=${encodeURIComponent(typeof detail === "string" ? detail : "Invalid input")}`,
+      );
     }
     redirect(`/invite?sent=${encodeURIComponent(email)}`);
   }
@@ -40,7 +42,13 @@ export default async function InvitePage({
       {sent && <p className="text-green-700">Invitation sent to {sent}.</p>}
       {error && <p className="text-red-700">{error}</p>}
       <form action={invite} className="space-y-3">
-        <input name="email" type="email" required placeholder="Email" className="w-full rounded border p-2" />
+        <input
+          name="email"
+          type="email"
+          required
+          placeholder="Email"
+          className="w-full rounded border p-2"
+        />
         <fieldset className="space-y-1">
           <legend className="font-medium">Access</legend>
           {me.grantable_roles.map((role) => (

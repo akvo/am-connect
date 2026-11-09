@@ -37,7 +37,9 @@ export default async function AcceptInvitePage({
     );
     if (!res.ok) {
       const { detail } = await res.json();
-      redirect(`/invite/${token}?error=${encodeURIComponent(typeof detail === "string" ? detail : "Please check the form")}`);
+      redirect(
+        `/invite/${token}?error=${encodeURIComponent(typeof detail === "string" ? detail : "Please check the form")}`,
+      );
     }
     redirect("/login?notice=accepted");
   }
@@ -53,9 +55,26 @@ export default async function AcceptInvitePage({
       <p>Set up your account for {email}.</p>
       {error && <p className="text-red-700">{error}</p>}
       <form action={accept} className="space-y-3">
-        <input name="first_name" required placeholder="First name" className="w-full rounded border p-2" />
-        <input name="last_name" required placeholder="Last name" className="w-full rounded border p-2" />
-        <input name="password" type="password" required placeholder="Password" autoComplete="new-password" className="w-full rounded border p-2" />
+        <input
+          name="first_name"
+          required
+          placeholder="First name"
+          className="w-full rounded border p-2"
+        />
+        <input
+          name="last_name"
+          required
+          placeholder="Last name"
+          className="w-full rounded border p-2"
+        />
+        <input
+          name="password"
+          type="password"
+          required
+          placeholder="Password"
+          autoComplete="new-password"
+          className="w-full rounded border p-2"
+        />
         <button className="w-full rounded bg-black p-2 text-white">Create account</button>
       </form>
       {googleLoginEnabled && (

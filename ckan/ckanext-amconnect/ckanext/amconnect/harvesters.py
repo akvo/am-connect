@@ -16,6 +16,7 @@ Both standard harvesters give us a hook to normalise incoming records without pa
 Both hooks are ~20 lines: this is the "lightweight custom harvester" the evaluation asked
 about, and where a GeoServer harvester would start (see README).
 """
+
 import logging
 import re
 from urllib.parse import urlsplit
