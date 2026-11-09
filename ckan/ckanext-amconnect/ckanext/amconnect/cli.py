@@ -26,6 +26,7 @@ Resource model written per hosted layer (see services.py):
     raster  ->  WMS resource (view) + WCS resource (download)
 Idempotent: re-running updates in place and keeps resource ids (matched by name).
 """
+
 import glob
 import json
 import os
@@ -83,7 +84,7 @@ HARVEST_SOURCES = (
 
 
 def _sysadmin_name():
-    import ckan.model as model
+    from ckan import model
 
     admin = (
         model.Session.query(model.User)
@@ -383,6 +384,10 @@ def seed(data_dir, no_harvest_sources):
         "ckanext.amconnect.data_dir", "/amconnect-data"
     )
     owner_org = config.get("ckanext.amconnect.owner_org", ORG["name"])
+    services.PROBE_AUTH = (
+        config.get("ckanext.amconnect.geoserver_admin_user"),
+        config.get("ckanext.amconnect.geoserver_admin_password"),
+    )
 
     sysadmin = _sysadmin_name()
 

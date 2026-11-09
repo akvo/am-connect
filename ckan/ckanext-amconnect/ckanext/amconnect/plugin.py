@@ -16,6 +16,7 @@ Three plugins: ``amconnect`` (all of the above but the view), ``amconnect_wms_vi
 (the IResourceView; separate class because IDatasetForm and IResourceView both
 define ``setup_template_variables``) and ``amconnect_ckan_harvester``.
 """
+
 import ckan.plugins as p
 import ckan.plugins.toolkit as tk
 

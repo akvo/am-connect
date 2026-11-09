@@ -1,0 +1,36 @@
+# Words and phrases that make text read as machine-written. Seeded from the
+# no-ai-slop and humanizer skill lists; add more as reviewers spot them.
+extends: existence
+message: "'%s' reads as filler; say the plain thing instead."
+level: warning
+ignorecase: true
+tokens:
+  - delve
+  - robust
+  - seamless(ly)?
+  - leverag(e|es|ed|ing)
+  - utiliz(e|es|ed|ing)
+  - comprehensive
+  - cutting-edge
+  - game-changer
+  - tapestry
+  - testament
+  - pivotal
+  - crucial
+  - streamlin(e|es|ed|ing)
+  - unlock(s|ed|ing)?
+  - empower(s|ed|ing)?
+  - elevat(e|es|ed|ing)
+  - foster(s|ed|ing)?
+  - holistic
+  - synerg(y|ies)
+  - vibrant
+  - boasts
+  - furthermore
+  - moreover
+  - it's worth noting
+  - in today's
+  - at its core
+  - plays a (crucial|key|vital) role
+  - rest assured
+  - navigat(e|ing) the complexities

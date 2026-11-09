@@ -12,6 +12,7 @@ dependencies = []
 [project.entry-points."ckan.plugins"]
 amconnect = "ckanext.amconnect.plugin:AmconnectPlugin"
 amconnect_wms_view = "ckanext.amconnect.plugin:AmconnectWmsViewPlugin"
+amconnect_keycloak = "ckanext.amconnect.keycloak:AmconnectKeycloakPlugin"
 amconnect_ckan_harvester = "ckanext.amconnect.harvesters:AmconnectCKANHarvester"
 amconnect_csw_harvester = "ckanext.amconnect.harvesters:AmconnectCSWHarvester"
 
@@ -21,11 +22,14 @@ include = ["ckanext*"]
 [tool.setuptools.package-data]
 "ckanext.amconnect" = ["templates/**/*", "public/**/*"]
 
-[tool.black]
+[tool.ruff]
 line-length = 79
-skip-string-normalization = true
 
-[tool.isort]
-profile = "black"
-line_length = 79
-known_first_party = ["ckanext.amconnect"]
+[tool.ruff.format]
+quote-style = "preserve"
+
+[tool.ruff.lint]
+extend-select = ["I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["ckanext.amconnect"]
