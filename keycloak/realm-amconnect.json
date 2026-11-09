@@ -10,6 +10,20 @@
   "roles": {
     "realm": [
       {
+        "name": "default-roles-amconnect",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization"
+          ],
+          "client": {
+            "account": []
+          }
+        }
+      },
+      {
         "name": "super-admin",
         "description": "Administers AMConnect"
       },
@@ -27,22 +41,12 @@
       }
     ]
   },
-  "defaultRole": {
-    "name": "default-roles-amconnect",
-    "composite": true,
-    "composites": {
-      "realm": [
-        "offline_access",
-        "uma_authorization"
-      ]
-    }
-  },
   "clients": [
     {
       "clientId": "platform",
       "name": "AMConnect Platform",
       "publicClient": false,
-      "secret": "${PLATFORM_CLIENT_SECRET}",
+      "secret": "$(env:PLATFORM_CLIENT_SECRET)",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "redirectUris": [
@@ -60,7 +64,7 @@
       "clientId": "platform-admin",
       "name": "AMConnect Platform user administration",
       "publicClient": false,
-      "secret": "${PLATFORM_ADMIN_CLIENT_SECRET}",
+      "secret": "$(env:PLATFORM_ADMIN_CLIENT_SECRET)",
       "standardFlowEnabled": false,
       "directAccessGrantsEnabled": false,
       "serviceAccountsEnabled": true
@@ -69,7 +73,7 @@
       "clientId": "ckan",
       "name": "AMConnect Data Service (CKAN)",
       "publicClient": false,
-      "secret": "${CKAN_CLIENT_SECRET}",
+      "secret": "$(env:CKAN_CLIENT_SECRET)",
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
       "redirectUris": [
@@ -86,8 +90,8 @@
   ],
   "users": [
     {
-      "username": "${SUPERADMIN_EMAIL}",
-      "email": "${SUPERADMIN_EMAIL}",
+      "username": "$(env:SUPERADMIN_EMAIL)",
+      "email": "$(env:SUPERADMIN_EMAIL)",
       "emailVerified": true,
       "enabled": true,
       "firstName": "Super",
@@ -95,7 +99,8 @@
       "credentials": [
         {
           "type": "password",
-          "value": "${SUPERADMIN_PASSWORD}"
+          "userLabel": "initial",
+          "value": "$(env:SUPERADMIN_PASSWORD)"
         }
       ],
       "realmRoles": [
@@ -128,8 +133,8 @@
       "trustEmail": true,
       "firstBrokerLoginFlowAlias": "invite-only first login",
       "config": {
-        "clientId": "${GOOGLE_CLIENT_ID}",
-        "clientSecret": "${GOOGLE_CLIENT_SECRET}",
+        "clientId": "$(env:GOOGLE_CLIENT_ID)",
+        "clientSecret": "$(env:GOOGLE_CLIENT_SECRET)",
         "syncMode": "FORCE"
       }
     }

@@ -55,14 +55,15 @@ Invitations are emailed (see Mailpit); the link lets the invitee set name and pa
 or continue with Google. The super admin comes from `SUPERADMIN_EMAIL` /
 `SUPERADMIN_PASSWORD` in `.env`.
 
-Keycloak config lives in `keycloak/realm-amconnect.json` and is imported only into an
-empty database: after editing it, recreate Keycloak's data with
+Keycloak config lives in `keycloak/realm-amconnect.json`. The `keycloak-config` service
+([keycloak-config-cli](https://github.com/adorsys/keycloak-config-cli)) applies it to the
+running Keycloak on every `docker compose up -d`: edit the file, run `up`, done. Users are
+kept, and the super admin's password is set only when that user is first created.
 
-```bash
-docker compose rm -fsv keycloak
-docker compose exec db psql -U postgres -c 'DROP DATABASE keycloak' -c 'CREATE DATABASE keycloak OWNER keycloak'
-docker compose up -d keycloak
-```
+* Values come from the environment as `$(env:NAME)`, not `${NAME}`.
+* Something removed from the file is deleted only if keycloak-config-cli created it.
+* Renaming a role is a delete plus create: everyone loses it. Moving existing users to a
+  new role needs its own step (e.g. a backend migration calling Keycloak's Admin API).
 
 GeoServer's Keycloak filter and layer rule are written by `geoserver/entrypoint.sh` at
 every start.
@@ -77,8 +78,7 @@ Check the whole flow against the running stack (with demo data loaded, see below
 
 1. In Google Cloud console, create an OAuth client (Web application) with redirect URI
    `http://localhost:8180/realms/amconnect/broker/google/endpoint`.
-2. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env`, recreate Keycloak's data
-   (above), and `docker compose up -d`. The "Continue with Google" buttons appear.
+2. Put `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env` and `docker compose up -d`. The "Continue with Google" buttons appear.
 
 Google logs in only an invited email; anyone else sees an AMConnect-styled Keycloak page
 asking for an invitation.
