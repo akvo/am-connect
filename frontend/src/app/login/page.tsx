@@ -1,37 +1,39 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import type { ReactElement } from "react";
 import { googleLoginEnabled, signIn } from "@/auth";
+import { Input } from "@/components/input";
 
 const MESSAGES: Record<string, string> = {
   CredentialsSignin: "Invalid email or password.",
   accepted: "Your account is ready. Log in to continue.",
 };
 
+async function passwordLogin(form: FormData): Promise<void> {
+  "use server";
+  try {
+    await signIn("credentials", {
+      email: form.get("email"),
+      password: form.get("password"),
+      redirectTo: "/",
+    });
+  } catch (e) {
+    if (e instanceof AuthError) redirect(`/login?error=${e.type}`);
+    throw e; // signIn redirects by throwing
+  }
+}
+
+async function googleLogin(): Promise<void> {
+  "use server";
+  await signIn("keycloak", { redirectTo: "/" });
+}
+
 export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; notice?: string }>;
-}) {
+}): Promise<ReactElement> {
   const { error, notice } = await searchParams;
-
-  async function passwordLogin(form: FormData) {
-    "use server";
-    try {
-      await signIn("credentials", {
-        email: form.get("email"),
-        password: form.get("password"),
-        redirectTo: "/",
-      });
-    } catch (e) {
-      if (e instanceof AuthError) redirect(`/login?error=${e.type}`);
-      throw e; // signIn redirects by throwing
-    }
-  }
-
-  async function googleLogin() {
-    "use server";
-    await signIn("keycloak", { redirectTo: "/" });
-  }
 
   return (
     <main className="mx-auto mt-24 w-full max-w-sm space-y-6 p-4">
@@ -41,21 +43,12 @@ export default async function LoginPage({
         <p className="text-red-700">{MESSAGES[error] ?? "Login failed. Please try again."}</p>
       )}
       <form action={passwordLogin} className="space-y-3">
-        <input
-          name="email"
-          type="email"
-          required
-          placeholder="Email"
-          autoComplete="username"
-          className="w-full rounded border p-2"
-        />
-        <input
+        <Input name="email" type="email" placeholder="Email" autoComplete="username" />
+        <Input
           name="password"
           type="password"
-          required
           placeholder="Password"
           autoComplete="current-password"
-          className="w-full rounded border p-2"
         />
         <button className="w-full rounded bg-black p-2 text-white">Log in</button>
       </form>

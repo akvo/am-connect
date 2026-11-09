@@ -1,6 +1,7 @@
 import hashlib
 import os
 import secrets
+from collections.abc import Iterator
 from datetime import timedelta
 from typing import Annotated
 
@@ -20,7 +21,7 @@ INVITE_TTL = timedelta(days=7)
 app = FastAPI(title="AMConnect API")
 
 
-def get_session():
+def get_session() -> Iterator[Session]:
     with Session(engine) as session:
         yield session
 
@@ -58,7 +59,7 @@ def hash_token(token: str) -> str:
 
 
 @app.get("/health")
-def health():
+def health() -> dict:
     with engine.connect() as conn:
         conn.execute(text("SELECT 1"))
     return {"status": "ok"}
@@ -77,7 +78,7 @@ class Refresh(BaseModel):
 
 
 @app.post("/auth/login")
-def login(body: Login):
+def login(body: Login) -> dict:
     try:
         return keycloak.password_login(body.email, body.password)
     except keycloak.InvalidCredentials:
@@ -85,7 +86,7 @@ def login(body: Login):
 
 
 @app.post("/auth/refresh")
-def refresh(body: Refresh):
+def refresh(body: Refresh) -> dict:
     try:
         return keycloak.refresh(body.refresh_token)
     except keycloak.InvalidCredentials:
@@ -93,12 +94,12 @@ def refresh(body: Refresh):
 
 
 @app.post("/auth/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(body: Refresh):
+def logout(body: Refresh) -> None:
     keycloak.logout(body.refresh_token)
 
 
 @app.get("/me")
-def me(user: UserDep):
+def me(user: UserDep) -> dict:
     return {
         "id": user["sub"],
         "email": user.get("email"),
@@ -123,7 +124,9 @@ class InvitationAccept(BaseModel):
 
 
 @app.post("/invitations", status_code=status.HTTP_201_CREATED)
-def create_invitation(body: InvitationCreate, user: UserDep, session: SessionDep):
+def create_invitation(
+    body: InvitationCreate, user: UserDep, session: SessionDep
+) -> dict:
     inviter_roles = roles_of(user)
     if "user-manager" not in inviter_roles:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "You cannot invite users")
@@ -170,13 +173,13 @@ def open_invitation(token: str, session: Session) -> Invitation:
 
 
 @app.get("/invitations/{token}")
-def get_invitation(token: str, session: SessionDep):
+def get_invitation(token: str, session: SessionDep) -> dict:
     invitation = open_invitation(token, session)
     return {"email": invitation.email, "roles": invitation.roles}
 
 
 @app.post("/invitations/{token}/accept", status_code=status.HTTP_204_NO_CONTENT)
-def accept_invitation(token: str, body: InvitationAccept, session: SessionDep):
+def accept_invitation(token: str, body: InvitationAccept, session: SessionDep) -> None:
     invitation = open_invitation(token, session)
     try:
         keycloak.complete_account(

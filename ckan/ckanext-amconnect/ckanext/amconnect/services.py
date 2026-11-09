@@ -198,8 +198,7 @@ def to_public_url(url):
 def is_hosted_url(url):
     url = url or ""
     return bool(url) and (
-        url.startswith(geoserver_public_url())
-        or url.startswith(geoserver_internal_url())
+        url.startswith((geoserver_public_url(), geoserver_internal_url()))
     )
 
 
@@ -297,8 +296,10 @@ def harvest_info(pkg):
                 "frequency": src.get("frequency"),
             }
         )
-    except Exception:  # noqa: BLE001 - harvest plugin missing or source deleted
-        pass
+    except Exception:
+        log.debug(
+            "no harvest source info for %s", info["source_id"], exc_info=True
+        )
     return info
 
 
@@ -383,8 +384,8 @@ def probe_wms(endpoint):
         fmts = []
         try:
             fmts = wms.getOperationByName("GetFeatureInfo").formatOptions
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            log.debug("WMS has no GetFeatureInfo formats", exc_info=True)
         return {
             "ok": True,
             "cors": cors,
@@ -417,8 +418,8 @@ def probe_wfs(endpoint):
                 .parameters.get("outputFormat", {})
                 .get("values", [])
             )
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            log.debug("WFS has no GetFeature formats", exc_info=True)
         types = {
             n: {"title": t.title, "bbox": _bbox(t.boundingBoxWGS84)}
             for n, t in wfs.contents.items()
@@ -458,8 +459,8 @@ def probe_wcs(endpoint):
                 fmts = list(
                     wcs.getOperationByName("GetCoverage").formatOptions or []
                 )
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception:
+                log.debug("WCS has no GetCoverage formats", exc_info=True)
         return {
             "ok": True,
             "cors": cors,

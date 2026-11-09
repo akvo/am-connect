@@ -104,6 +104,7 @@ def postgis_ready():
         ["ogrinfo", "-q", "-so", pg_conn(), "-sql", "SELECT postgis_version()"],
         capture_output=True,
         text=True,
+        check=False,
     )
     return out.returncode == 0
 

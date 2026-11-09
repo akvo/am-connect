@@ -17,7 +17,10 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "diff-cover>=11.0.1",
+    "pyrefly==1.4.0",
     "pytest>=9.2.0",
+    "pytest-cov>=7.1.0",
     "ruff>=0.17.3",
 ]
 
@@ -26,3 +29,41 @@ package = false
 
 [tool.pytest.ini_options]
 pythonpath = ["."]
+
+[tool.ruff]
+line-length = 88
+extend-exclude = ["alembic/versions"]
+
+[tool.ruff.lint]
+# PLR1702 (nesting) is a preview rule; explicit-preview-rules keeps other preview rules off
+preview = true
+explicit-preview-rules = true
+extend-select = [
+    "I",
+    "C901",
+    "PLR0912",
+    "PLR0913",
+    "PLR0915",
+    "PLR1702",
+    "ANN",
+    "PGH003",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 10
+max-statements = 50
+max-nested-blocks = 3
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
+
+[tool.pyrefly]
+project-includes = ["app", "tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]

@@ -1,0 +1,7 @@
+AMConnect
+SQLModel
+uv
+Mailpit
+pgAdmin
+pycsw
+[Cc]yclomatic

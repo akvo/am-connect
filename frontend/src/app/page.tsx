@@ -1,8 +1,9 @@
 import Link from "next/link";
+import type { ReactElement } from "react";
 import { signOut } from "@/auth";
 import { getMe, visibleLayers } from "@/lib/api";
 
-export default async function Home() {
+export default async function Home(): Promise<ReactElement> {
   const me = await getMe();
   const layers = await visibleLayers();
 

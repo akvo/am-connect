@@ -12,7 +12,7 @@ export type Me = {
 };
 
 /** Calls the backend; with `asUser`, sends the signed-in user's token (or goes to /login). */
-export async function api(path: string, init: RequestInit = {}, asUser = true) {
+export async function api(path: string, init: RequestInit = {}, asUser = true): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set("content-type", "application/json");
   if (asUser) {

@@ -84,7 +84,7 @@ HARVEST_SOURCES = (
 
 
 def _sysadmin_name():
-    import ckan.model as model
+    from ckan import model
 
     admin = (
         model.Session.query(model.User)

@@ -11,7 +11,7 @@ AMConnect platform and data service.
 | Database | `db/` | One PostGIS server, one database per service |
 
 The CKAN and GeoServer parts come from the
-[poc-amconnect](https://github.com/dedenbangkit/poc-amconnect) proof of concept.
+[`poc-amconnect`](https://github.com/dedenbangkit/poc-amconnect) proof of concept.
 
 ## Run
 
@@ -88,9 +88,7 @@ asking for an invitation.
 Migrations run on container start (`alembic upgrade head`). Code reloads on save.
 
 ```bash
-docker compose exec backend pytest
 docker compose exec -u "$(id -u):$(id -g)" backend alembic revision --autogenerate -m "add thing"
-docker compose exec backend ruff check .
 ```
 
 Import new SQLModel table modules in `backend/alembic/env.py` so autogenerate sees them.
@@ -101,9 +99,18 @@ Add dependencies on the host with `uv add <pkg>` in `backend/`, then
 
 `pnpm dev` runs in the container with hot reload.
 
+## Checks
+
+With the stack up, from the repo root:
+
 ```bash
-docker compose exec frontend pnpm lint
+make check    # lint, format check, types (ruff, Pyrefly, ESLint, Prettier, tsc), Vale
+make test     # backend tests with coverage
+make format   # apply ruff and Prettier
 ```
+
+CI (`.github/workflows/quality.yml`) runs the same targets. It also requires 80% coverage
+of a PR's changed backend lines. Limits and conventions are in `CLAUDE.md`.
 
 ## Demo data
 
@@ -123,4 +130,4 @@ a known ckanext-harvest / CKAN 2.11 issue; the harvest still finishes.
 
 ## License
 
-[AGPL-3.0](LICENSE), inherited from poc-amconnect.
+[AGPL-3.0](LICENSE), inherited from `poc-amconnect`.
