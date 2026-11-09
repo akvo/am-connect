@@ -13,6 +13,6 @@ def send_invite(to: str, link: str, inviter: str) -> None:
         f"Accept the invitation (valid for 7 days):\n{link}\n"
     )
     with smtplib.SMTP(
-        os.environ["SMTP_HOST"], int(os.environ.get("SMTP_PORT", "25"))
+        os.environ["SMTP_HOST"], int(os.environ.get("SMTP_PORT", "25")), timeout=10
     ) as smtp:
         smtp.send_message(msg)

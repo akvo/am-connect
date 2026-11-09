@@ -180,10 +180,15 @@ def open_invitation(token: str, session: Session) -> Invitation:
     invitation = session.exec(
         select(Invitation).where(Invitation.token_hash == hash_token(token))
     ).first()
+    gone = HTTPException(status.HTTP_404_NOT_FOUND, "Invitation not found or expired")
     if not invitation or invitation.accepted_at or invitation.expires_at < utcnow():
-        raise HTTPException(
-            status.HTTP_404_NOT_FOUND, "Invitation not found or expired"
-        )
+        raise gone
+    # joined with Google instead: the link must not set a password on a live account
+    if keycloak.can_sign_in(invitation.keycloak_user_id):
+        invitation.accepted_at = utcnow()
+        session.add(invitation)
+        session.commit()
+        raise gone
     return invitation
 
 

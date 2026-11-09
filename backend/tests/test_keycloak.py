@@ -152,6 +152,7 @@ def signed(**claims):
     claims = {
         "iss": keycloak.ISSUER,
         "azp": "platform",
+        "typ": "Bearer",
         "exp": time.time() + 60,
         **claims,
     }
@@ -176,10 +177,13 @@ def test_verify_accepts_platform_token(signing_key):
     "claims",
     [
         {"azp": "ckan"},
+        {"typ": "ID"},
         {"iss": "http://elsewhere/realms/amconnect"},
         {"exp": time.time() - 60},
     ],
 )
-def test_verify_rejects_other_clients_issuers_and_expired(signing_key, claims):
+def test_verify_rejects_other_clients_issuers_id_tokens_and_expired(
+    signing_key, claims
+):
     with pytest.raises(jwt.InvalidTokenError):
         keycloak.verify(signed(**claims))

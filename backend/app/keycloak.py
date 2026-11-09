@@ -73,6 +73,8 @@ def verify(access_token: str) -> dict:
     )
     if claims.get("azp") != "platform":
         raise jwt.InvalidTokenError("token was not issued to the platform client")
+    if claims.get("typ") != "Bearer":  # ID tokens share iss and azp
+        raise jwt.InvalidTokenError("not an access token")
     return claims
 
 

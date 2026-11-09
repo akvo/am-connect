@@ -37,6 +37,7 @@ def env(monkeypatch):
 
     sent, created, passwords = [], {}, {}
     monkeypatch.setattr(keycloak, "find_user", lambda email: None)
+    monkeypatch.setattr(keycloak, "can_sign_in", lambda uid: False)
     monkeypatch.setattr(
         keycloak,
         "create_user",
@@ -157,6 +158,21 @@ def test_accept_sets_password_once(env):
     )
     assert again.status_code == 404
     assert env.passwords == {"kc-a@example.org": "s3cret-pw"}
+
+
+def test_link_is_dead_once_the_user_joined_with_google(env, monkeypatch):
+    env.as_user(SUPER_ADMIN)
+    invite(env, "a@example.org", [])
+    token = token_of(env)
+    monkeypatch.setattr(keycloak, "can_sign_in", lambda uid: True)
+    r = env.client.post(
+        f"/invitations/{token}/accept",
+        json={"first_name": "Eve", "last_name": "E", "password": "takeover-pw"},
+    )
+    assert r.status_code == 404
+    assert env.passwords == {}
+    with Session(env.db) as s:
+        assert s.exec(select(Invitation)).one().accepted_at is not None
 
 
 def test_expired_invitation_cannot_be_used(env):

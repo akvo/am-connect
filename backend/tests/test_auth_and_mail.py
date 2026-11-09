@@ -58,11 +58,11 @@ def test_invalid_token_is_401(monkeypatch):
 
 @pytest.fixture
 def smtp(monkeypatch):
-    smtp = SimpleNamespace(sent=[], address=None)
+    smtp = SimpleNamespace(sent=[], address=None, timeout=None)
 
     class FakeSMTP:
-        def __init__(self, host, port):
-            smtp.address = (host, port)
+        def __init__(self, host, port, timeout=None):
+            smtp.address, smtp.timeout = (host, port), timeout
 
         def __enter__(self):
             return self
@@ -83,6 +83,7 @@ def test_send_invite_mails_the_link(smtp):
     mail.send_invite("b@example.org", "http://x/invite/tok", "a@example.org")
     (msg,) = smtp.sent
     assert smtp.address == ("mailpit", 1025)
+    assert smtp.timeout  # a stalled mail server must not hang the request
     assert msg["To"] == "b@example.org"
     assert "http://x/invite/tok" in msg.get_content()
     assert "a@example.org invited you" in msg.get_content()
