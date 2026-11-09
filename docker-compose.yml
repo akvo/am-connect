@@ -29,6 +29,14 @@ services:
       db: { condition: service_healthy }
     environment:
       DATABASE_URL: postgresql+psycopg://platform:platform@db/platform
+      PLATFORM_URL: http://localhost:3000
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: http://localhost:8180/realms/amconnect
+      PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
+      PLATFORM_ADMIN_CLIENT_SECRET: ${PLATFORM_ADMIN_CLIENT_SECRET:-dev-platform-admin-secret}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@amconnect.local}
 
   # ------------------------------------------------------------ data service
   ckan:
@@ -152,8 +160,32 @@ services:
       KC_DB_PASSWORD: keycloak
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # tokens always name the browser URL as issuer; containers call http://keycloak:8080
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # drop idle pooled connections to Google before a NAT/router silently kills them;
+      # reusing a dead one hangs the Google login with "Read timed out"
+      KC_SPI_CONNECTIONS_HTTP_CLIENT__DEFAULT__MAX_CONNECTION_IDLE_TIME_MILLIS: "30000"
+      # placeholders in realm-amconnect.json
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@example.org}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-admin12345}
+      PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
+      PLATFORM_ADMIN_CLIENT_SECRET: ${PLATFORM_ADMIN_CLIENT_SECRET:-dev-platform-admin-secret}
+      CKAN_CLIENT_SECRET: ${CKAN_CLIENT_SECRET:-dev-ckan-secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
     volumes:
       - ./keycloak/realm-amconnect.json:/opt/keycloak/data/import/realm-amconnect.json:ro
+      - ./keycloak/themes/amconnect:/opt/keycloak/themes/amconnect:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
   pgadmin:
     image: dpage/pgadmin4:9
