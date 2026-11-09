@@ -18,6 +18,7 @@ check-python:
 check-frontend:
 	$(FRONTEND) exec eslint .
 	$(FRONTEND) exec prettier --check .
+	$(FRONTEND) exec next typegen  # route types such as LayoutProps, normally made by next dev
 	$(FRONTEND) exec tsc --noEmit
 
 ## prose lint; reports only, never fails the build
