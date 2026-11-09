@@ -29,7 +29,7 @@ RUN pip install --no-cache-dir -e ${SRC_DIR}/ckanext-amconnect
 # would otherwise try to reach a datastore DB we do not run.  Order matters: later
 # plugins' templates take precedence, so ckanext-amconnect goes last.
 RUN ckan config-tool ${CKAN_INI} \
-      "ckan.plugins = image_view text_view resource_proxy envvars spatial_metadata spatial_query harvest geo_view geojson_view amconnect amconnect_wms_view amconnect_ckan_harvester amconnect_csw_harvester" && \
+      "ckan.plugins = image_view text_view resource_proxy envvars spatial_metadata spatial_query harvest geo_view geojson_view amconnect amconnect_wms_view amconnect_keycloak amconnect_ckan_harvester amconnect_csw_harvester" && \
     ckan config-tool ${CKAN_INI} "ckan.views.default_views = image_view text_view amconnect_wms_view" && \
     ckan config-tool ${CKAN_INI} "ckanext.spatial.search_backend = solr-spatial-field" && \
     ckan config-tool ${CKAN_INI} "ckan.harvest.mq.type = redis" && \

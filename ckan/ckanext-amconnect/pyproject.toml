@@ -12,6 +12,7 @@ dependencies = []
 [project.entry-points."ckan.plugins"]
 amconnect = "ckanext.amconnect.plugin:AmconnectPlugin"
 amconnect_wms_view = "ckanext.amconnect.plugin:AmconnectWmsViewPlugin"
+amconnect_keycloak = "ckanext.amconnect.keycloak:AmconnectKeycloakPlugin"
 amconnect_ckan_harvester = "ckanext.amconnect.harvesters:AmconnectCKANHarvester"
 amconnect_csw_harvester = "ckanext.amconnect.harvesters:AmconnectCSWHarvester"
 
