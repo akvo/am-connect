@@ -112,8 +112,27 @@ def test_inviting_needs_user_manager(env):
 
 def test_existing_user_is_not_invited_again(env, monkeypatch):
     monkeypatch.setattr(keycloak, "find_user", lambda email: {"id": "x"})
+    monkeypatch.setattr(keycloak, "can_sign_in", lambda uid: True)
     env.as_user(SUPER_ADMIN)
     assert invite(env, "a@example.org", []).status_code == 409
+
+
+def test_unfinished_invitation_is_replaced(env, monkeypatch):
+    env.as_user(SUPER_ADMIN)
+    invite(env, "a@example.org", [])
+    old_token = token_of(env)
+
+    deleted = []
+    monkeypatch.setattr(keycloak, "find_user", lambda email: {"id": "kc-old"})
+    monkeypatch.setattr(keycloak, "can_sign_in", lambda uid: False)
+    monkeypatch.setattr(keycloak, "delete_user", deleted.append)
+    assert invite(env, "a@example.org", ["ckan-access"]).status_code == 201
+
+    assert deleted == ["kc-old"]
+    assert env.client.get(f"/invitations/{old_token}").status_code == 404
+    assert env.client.get(f"/invitations/{token_of(env)}").json()["roles"] == [
+        "ckan-access"
+    ]
 
 
 def test_accept_sets_password_once(env):

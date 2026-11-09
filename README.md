@@ -52,7 +52,9 @@ redirects through Keycloak to Google.
 | `geoserver-access` | can read `amconnect` GeoServer layers with `Authorization: Bearer <access token>` |
 
 Invitations are emailed (see Mailpit); the link lets the invitee set name and password,
-or continue with Google. The super admin comes from `SUPERADMIN_EMAIL` /
+or continue with Google. Until the invitee does, inviting the same email again replaces
+the invitation. Passwords need 8 characters and must not be the email; repeated failed
+logins lock the account for a while. The super admin comes from `SUPERADMIN_EMAIL` /
 `SUPERADMIN_PASSWORD` in `.env`.
 
 Keycloak config lives in `keycloak/realm-amconnect.json`. The `keycloak-config` service

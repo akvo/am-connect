@@ -105,6 +105,26 @@ def test_create_user_with_unknown_role_creates_nobody(kc):
     ]
 
 
+@pytest.mark.parametrize(
+    ("credentials", "google", "expected"),
+    [([], [], False), ([{"type": "password"}], [], True), ([], [{"x": 1}], True)],
+)
+def test_can_sign_in_needs_a_password_or_google(kc, credentials, google, expected):
+    kc.routes[("GET", f"{ADMIN}/users/u1/credentials")] = httpx2.Response(
+        200, json=credentials
+    )
+    kc.routes[("GET", f"{ADMIN}/users/u1/federated-identity")] = httpx2.Response(
+        200, json=google
+    )
+    assert keycloak.can_sign_in("u1") is expected
+
+
+def test_delete_user(kc):
+    kc.routes[("DELETE", f"{ADMIN}/users/u1")] = httpx2.Response(204)
+    keycloak.delete_user("u1")
+    assert kc.requests[-1].method == "DELETE"
+
+
 def test_complete_account_sets_name_and_password(kc):
     kc.routes[("PUT", f"{ADMIN}/users/u1")] = httpx2.Response(204)
     kc.routes[("PUT", f"{ADMIN}/users/u1/reset-password")] = httpx2.Response(204)

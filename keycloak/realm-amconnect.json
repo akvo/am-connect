@@ -7,6 +7,8 @@
   "resetPasswordAllowed": false,
   "loginWithEmailAllowed": true,
   "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(8) and notEmail",
   "roles": {
     "realm": [
       {

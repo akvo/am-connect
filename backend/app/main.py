@@ -9,7 +9,7 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
-from sqlmodel import Session, select, text
+from sqlmodel import Session, col, delete, select, text
 
 from app import keycloak, mail
 from app.db import engine
@@ -123,6 +123,25 @@ class InvitationAccept(BaseModel):
     password: str
 
 
+def replace_unfinished_user(email: str, session: Session) -> None:
+    """A user who never signed in (invite expired, or a failed invite) is deleted so the
+    invitation can start over; anyone who did sign in is a conflict."""
+    existing = keycloak.find_user(email)
+    if not existing:
+        return
+    if keycloak.can_sign_in(existing["id"]):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "A user with this email already exists"
+        )
+    keycloak.delete_user(existing["id"])
+    session.exec(
+        delete(Invitation).where(
+            col(Invitation.email) == email, col(Invitation.accepted_at).is_(None)
+        )
+    )
+    session.commit()  # the Keycloak user is already gone
+
+
 @app.post("/invitations", status_code=status.HTTP_201_CREATED)
 def create_invitation(
     body: InvitationCreate, user: UserDep, session: SessionDep
@@ -137,10 +156,7 @@ def create_invitation(
             f"You cannot grant: {', '.join(sorted(not_allowed))}",
         )
     email = body.email.lower()
-    if keycloak.find_user(email):
-        raise HTTPException(
-            status.HTTP_409_CONFLICT, "A user with this email already exists"
-        )
+    replace_unfinished_user(email, session)
 
     token = secrets.token_urlsafe(32)
     invitation = Invitation(
@@ -154,7 +170,6 @@ def create_invitation(
     session.add(invitation)
     session.commit()
     session.refresh(invitation)
-    # shortcut: a failed send leaves the invitation without an email; add re-send when invites get managed
     mail.send_invite(
         email, f"{PLATFORM_URL}/invite/{token}", user.get("email", "Someone")
     )

@@ -88,6 +88,22 @@ def find_user(email: str) -> dict | None:
         return next(iter(r.json()), None)
 
 
+def can_sign_in(user_id: str) -> bool:
+    """True once the user has a password or a linked Google account."""
+    with _admin() as kc:
+        for path in ("credentials", "federated-identity"):
+            r = kc.get(f"/users/{user_id}/{path}")
+            r.raise_for_status()
+            if r.json():
+                return True
+        return False
+
+
+def delete_user(user_id: str) -> None:
+    with _admin() as kc:
+        kc.delete(f"/users/{user_id}").raise_for_status()
+
+
 def create_user(email: str, roles: list[str]) -> str:
     """Creates an enabled user with a verified email and no password, so Google login can
     link to it right away. Returns the Keycloak user id."""
