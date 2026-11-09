@@ -145,7 +145,7 @@ services:
       - geoserver_data:/opt/geoserver_data
       - ./geoserver/entrypoint.sh:/amconnect-entrypoint.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:8080/geoserver/rest/about/version.json -u $${GEOSERVER_ADMIN_USER}:$${GEOSERVER_ADMIN_PASSWORD} >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "test -f /tmp/amconnect-ready && curl -fs http://localhost:8080/geoserver/rest/about/version.json -u $${GEOSERVER_ADMIN_USER}:$${GEOSERVER_ADMIN_PASSWORD} >/dev/null || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 40

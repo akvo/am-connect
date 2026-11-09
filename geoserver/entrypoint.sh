@@ -15,6 +15,7 @@ SECURITY="$GEOSERVER_DATA_DIR/security"
 KC_PUBLIC="$KEYCLOAK_PUBLIC_URL/realms/amconnect/protocol/openid-connect"
 KC_INTERNAL="$KEYCLOAK_INTERNAL_URL/realms/amconnect/protocol/openid-connect"
 
+rm -f /tmp/amconnect-ready  # healthcheck waits for it, so nobody uses the temporary first boot
 if [ ! -f "$SECURITY/config.xml" ]; then
   echo "[amconnect] first start: letting GeoServer create its security config"
   /opt/startup.sh &
@@ -55,4 +56,5 @@ grep -q '<filter>keycloak</filter>' "$SECURITY/config.xml" ||
 grep -q '^amconnect\.\*\.r=' "$SECURITY/layers.properties" ||
   sed -i '$a amconnect.*.r=geoserver-access' "$SECURITY/layers.properties"
 
+touch /tmp/amconnect-ready
 exec /opt/startup.sh
