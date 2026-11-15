@@ -11,6 +11,7 @@ fetches /api/amconnect/datasets/<id> in the browser and builds the map, layer
 panel, downloads and analysis tools from that JSON.  That is deliberate: it is
 exactly what a standalone AMConnect frontend would do.
 """
+
 import ckan.plugins.toolkit as tk
 from flask import Blueprint, request
 

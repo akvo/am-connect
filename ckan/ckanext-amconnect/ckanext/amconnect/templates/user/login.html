@@ -1,0 +1,8 @@
+{% ckan_extends %}
+
+{% block form %}
+  {{ super() }}
+  {% if h.amconnect_google_login and h.amconnect_google_login() %}
+    <p><a class="btn btn-default" href="{{ h.url_for('amconnect_keycloak.google_login') }}">{{ _('Continue with Google') }}</a></p>
+  {% endif %}
+{% endblock %}

@@ -4,6 +4,7 @@ from logging.config import fileConfig
 from sqlalchemy import engine_from_config, pool
 from sqlmodel import SQLModel
 
+import app.models  # noqa: F401  (registers tables on SQLModel.metadata)
 from alembic import context
 
 # this is the Alembic Config object, which provides
@@ -16,7 +17,6 @@ config.set_main_option("sqlalchemy.url", os.environ["DATABASE_URL"])
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# import SQLModel table modules here so autogenerate sees them
 target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,

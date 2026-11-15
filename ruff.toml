@@ -1,0 +1,4 @@
+# Python outside backend/ (CKAN extension, GeoServer seed, demo): format and basic lint.
+# backend/ and ckan/ckanext-amconnect/ have their own config in pyproject.toml.
+[lint]
+extend-select = ["I"]

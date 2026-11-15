@@ -1,0 +1,6 @@
+extends: existence
+message: "Em dash: a comma, colon or full stop usually reads better."
+level: suggestion
+nonword: true
+tokens:
+  - "—"

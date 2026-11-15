@@ -1,4 +1,169 @@
 {
   "realm": "amconnect",
-  "enabled": true
+  "displayName": "AMConnect",
+  "enabled": true,
+  "loginTheme": "amconnect",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "bruteForceProtected": true,
+  "passwordPolicy": "length(8) and notEmail",
+  "roles": {
+    "realm": [
+      {
+        "name": "default-roles-amconnect",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "offline_access",
+            "uma_authorization"
+          ],
+          "client": {
+            "account": []
+          }
+        }
+      },
+      {
+        "name": "super-admin",
+        "description": "Administers AMConnect"
+      },
+      {
+        "name": "user-manager",
+        "description": "Can invite users"
+      },
+      {
+        "name": "ckan-access",
+        "description": "Can log in to CKAN"
+      },
+      {
+        "name": "geoserver-access",
+        "description": "Can read restricted GeoServer layers"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "platform",
+      "name": "AMConnect Platform",
+      "publicClient": false,
+      "secret": "$(env:PLATFORM_CLIENT_SECRET)",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:3000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3000"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:3000/*",
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "platform-admin",
+      "name": "AMConnect Platform user administration",
+      "publicClient": false,
+      "secret": "$(env:PLATFORM_ADMIN_CLIENT_SECRET)",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "ckan",
+      "name": "AMConnect Data Service (CKAN)",
+      "publicClient": false,
+      "secret": "$(env:CKAN_CLIENT_SECRET)",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": true,
+      "redirectUris": [
+        "http://localhost:5000/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5000"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:5000/*",
+        "pkce.code.challenge.method": "S256"
+      }
+    }
+  ],
+  "users": [
+    {
+      "username": "$(env:SUPERADMIN_EMAIL)",
+      "email": "$(env:SUPERADMIN_EMAIL)",
+      "emailVerified": true,
+      "enabled": true,
+      "firstName": "Super",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "userLabel": "initial",
+          "value": "$(env:SUPERADMIN_PASSWORD)"
+        }
+      ],
+      "realmRoles": [
+        "default-roles-amconnect",
+        "super-admin",
+        "user-manager",
+        "ckan-access",
+        "geoserver-access"
+      ]
+    },
+    {
+      "username": "service-account-platform-admin",
+      "enabled": true,
+      "serviceAccountClientId": "platform-admin",
+      "clientRoles": {
+        "realm-management": [
+          "manage-users",
+          "view-users",
+          "query-users",
+          "view-realm"
+        ]
+      }
+    }
+  ],
+  "identityProviders": [
+    {
+      "alias": "google",
+      "providerId": "google",
+      "enabled": true,
+      "trustEmail": true,
+      "firstBrokerLoginFlowAlias": "invite-only first login",
+      "config": {
+        "clientId": "$(env:GOOGLE_CLIENT_ID)",
+        "clientSecret": "$(env:GOOGLE_CLIENT_SECRET)",
+        "syncMode": "FORCE"
+      }
+    }
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "invite-only first login",
+      "description": "Google login links to an invited (existing) user without showing any page; anyone else is refused",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-detect-existing-broker-user",
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "idp-auto-link",
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ]
 }

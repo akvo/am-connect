@@ -2,7 +2,7 @@
 #
 #   platform     : frontend (Next.js), backend (FastAPI)
 #   data service : ckan, solr, redis, geoserver
-#   shared       : db (one PostGIS server, one database per service), keycloak, pgadmin
+#   shared       : db (one PostGIS server, one database per service), keycloak, keycloak-config, pgadmin
 #   demo profile : geoserver-seed, mock-ckan, pycsw (see README "Demo data")
 
 services:
@@ -17,7 +17,14 @@ services:
     command: sh -c "npm install -g pnpm@12 && pnpm install && pnpm dev"
     environment:
       NEXT_TELEMETRY_DISABLED: 1
-      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+      AUTH_URL: http://localhost:3000
+      AUTH_SECRET: ${AUTH_SECRET:-dev-auth-secret-change-me}
+      BACKEND_INTERNAL_URL: http://backend:8000
+      GEOSERVER_INTERNAL_URL: http://geoserver:8080/geoserver
+      KEYCLOAK_ISSUER: http://localhost:8180/realms/amconnect
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
+      GOOGLE_LOGIN_ENABLED: ${GOOGLE_CLIENT_ID:+true}
 
   backend:
     build: ./backend
@@ -29,6 +36,14 @@ services:
       db: { condition: service_healthy }
     environment:
       DATABASE_URL: postgresql+psycopg://platform:platform@db/platform
+      PLATFORM_URL: http://localhost:3000
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
+      KEYCLOAK_ISSUER: http://localhost:8180/realms/amconnect
+      PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
+      PLATFORM_ADMIN_CLIENT_SECRET: ${PLATFORM_ADMIN_CLIENT_SECRET:-dev-platform-admin-secret}
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
+      MAIL_FROM: ${MAIL_FROM:-no-reply@amconnect.local}
 
   # ------------------------------------------------------------ data service
   ckan:
@@ -50,8 +65,8 @@ services:
       CKAN_REDIS_URL: redis://redis:6379/0
       CKAN_SYSADMIN_NAME: ${CKAN_SYSADMIN_NAME:-admin}
       CKAN_SYSADMIN_PASSWORD: ${CKAN_SYSADMIN_PASSWORD:-admin12345}
-      CKAN_SYSADMIN_EMAIL: ${CKAN_SYSADMIN_EMAIL:-admin@example.org}
-      CKAN__PLUGINS: image_view text_view resource_proxy envvars spatial_metadata spatial_query harvest geo_view geojson_view amconnect amconnect_wms_view amconnect_ckan_harvester amconnect_csw_harvester
+      CKAN_SYSADMIN_EMAIL: ${CKAN_SYSADMIN_EMAIL:-ckan-admin@example.org}  # must differ from Keycloak users' emails
+      CKAN__PLUGINS: image_view text_view resource_proxy envvars spatial_metadata spatial_query harvest geo_view geojson_view amconnect amconnect_wms_view amconnect_keycloak amconnect_ckan_harvester amconnect_csw_harvester
       CKAN__VIEWS__DEFAULT_VIEWS: image_view text_view amconnect_wms_view
       # ckanext-spatial: index the real geometry in Solr (needs the -spatial solr image)
       CKANEXT__SPATIAL__SEARCH_BACKEND: solr-spatial-field
@@ -67,7 +82,14 @@ services:
       CKANEXT__AMCONNECT__GEOSERVER_PUBLIC_URL: http://localhost:8080/geoserver   # as seen from the browser
       CKANEXT__AMCONNECT__GEOSERVER_INTERNAL_URL: http://geoserver:8080/geoserver # as seen from this container
       CKANEXT__AMCONNECT__GEOSERVER_WORKSPACE: amconnect
+      # `ckan amconnect seed` only: layers are restricted, the seed reads their extents as admin
+      CKANEXT__AMCONNECT__GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
+      CKANEXT__AMCONNECT__GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
       CKANEXT__AMCONNECT__DATA_DIR: /amconnect-data
+      CKANEXT__AMCONNECT__KEYCLOAK__PUBLIC_URL: http://localhost:8180
+      CKANEXT__AMCONNECT__KEYCLOAK__INTERNAL_URL: http://keycloak:8080
+      CKANEXT__AMCONNECT__KEYCLOAK__CLIENT_SECRET: ${CKAN_CLIENT_SECRET:-dev-ckan-secret}
+      CKANEXT__AMCONNECT__KEYCLOAK__GOOGLE_LOGIN: ${GOOGLE_CLIENT_ID:+true}
       # demo only: seed example datasets / run the demo harvest sources at start
       AMCONNECT_SEED: ${AMCONNECT_SEED:-false}
       AMCONNECT_HARVEST: ${AMCONNECT_HARVEST:-false}
@@ -101,7 +123,7 @@ services:
       retries: 20
 
   geoserver:
-    image: docker.osgeo.org/geoserver:2.26.2
+    image: docker.osgeo.org/geoserver:3.0.1
     depends_on:
       db: { condition: service_healthy }
     ports:
@@ -110,13 +132,20 @@ services:
       GEOSERVER_ADMIN_USER: ${GEOSERVER_ADMIN_USER:-admin}
       GEOSERVER_ADMIN_PASSWORD: ${GEOSERVER_ADMIN_PASSWORD:-geoserver}
       SKIP_DEMO_DATA: "true"
+      INSTALL_EXTENSIONS: "true"
+      STABLE_EXTENSIONS: sec-oidc
+      KEYCLOAK_PUBLIC_URL: http://localhost:8180
+      KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       CORS_ENABLED: "true"
       PROXY_BASE_URL: http://localhost:8080/geoserver
       EXTRA_JAVA_OPTS: -Xms256m -Xmx1g
+    # Keycloak bearer auth + `amconnect` layers restricted to geoserver-access, see the script
+    entrypoint: ["/amconnect-entrypoint.sh"]
     volumes:
       - geoserver_data:/opt/geoserver_data
+      - ./geoserver/entrypoint.sh:/amconnect-entrypoint.sh:ro
     healthcheck:
-      test: ["CMD-SHELL", "curl -fs http://localhost:8080/geoserver/rest/about/version.json -u $${GEOSERVER_ADMIN_USER}:$${GEOSERVER_ADMIN_PASSWORD} >/dev/null || exit 1"]
+      test: ["CMD-SHELL", "test -f /tmp/amconnect-ready && curl -fs http://localhost:8080/geoserver/rest/about/version.json -u $${GEOSERVER_ADMIN_USER}:$${GEOSERVER_ADMIN_PASSWORD} >/dev/null || exit 1"]
       interval: 15s
       timeout: 10s
       retries: 40
@@ -140,7 +169,7 @@ services:
 
   keycloak:
     image: quay.io/keycloak/keycloak:26.5
-    command: start-dev --import-realm
+    command: start-dev
     depends_on:
       db: { condition: service_healthy }
     ports:
@@ -152,8 +181,48 @@ services:
       KC_DB_PASSWORD: keycloak
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # tokens always name the browser URL as issuer; containers call http://keycloak:8080
+      KC_HOSTNAME: http://localhost:8180
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
+      # drop idle pooled connections to Google before a NAT/router silently kills them;
+      # reusing a dead one hangs the Google login with "Read timed out"
+      KC_SPI_CONNECTIONS_HTTP_CLIENT__DEFAULT__MAX_CONNECTION_IDLE_TIME_MILLIS: "30000"
     volumes:
-      - ./keycloak/realm-amconnect.json:/opt/keycloak/data/import/realm-amconnect.json:ro
+      - ./keycloak/themes/amconnect:/opt/keycloak/themes/amconnect:ro
+
+  # applies keycloak/realm-amconnect.json to the running Keycloak on every `up`:
+  # creates or updates roles, clients, flows and the Google login; leaves users alone
+  keycloak-config:
+    image: adorsys/keycloak-config-cli:6.5.1-26.5.5
+    depends_on:
+      keycloak: { condition: service_started }
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 180s
+      IMPORT_FILES_LOCATIONS: /config/realm-amconnect.json
+      IMPORT_VARSUBSTITUTION_ENABLED: "true"
+      # $(env:...) values in realm-amconnect.json
+      SUPERADMIN_EMAIL: ${SUPERADMIN_EMAIL:-admin@example.org}
+      SUPERADMIN_PASSWORD: ${SUPERADMIN_PASSWORD:-admin12345}
+      PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
+      PLATFORM_ADMIN_CLIENT_SECRET: ${PLATFORM_ADMIN_CLIENT_SECRET:-dev-platform-admin-secret}
+      CKAN_CLIENT_SECRET: ${CKAN_CLIENT_SECRET:-dev-ckan-secret}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
+    volumes:
+      - ./keycloak/realm-amconnect.json:/config/realm-amconnect.json:ro
+
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1
 
   pgadmin:
     image: dpage/pgadmin4:9

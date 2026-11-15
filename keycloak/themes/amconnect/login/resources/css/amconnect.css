@@ -1,0 +1,2 @@
+/* AMConnect: only shown on Keycloak error pages (e.g. Google login without an invitation) */
+:root { --pf-v5-global--primary-color--100: #00695c; }

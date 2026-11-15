@@ -27,6 +27,7 @@ The probes use OWSLib (already installed for ckanext-spatial) on the *internal*
 GeoServer URL when the resource points at the public one, so CKAN can probe
 inside the Docker network while browsers keep using the public URL.
 """
+
 import logging
 import re
 import threading
@@ -142,6 +143,9 @@ CAPABILITY_KEYS = (
 
 PROBE_TTL = 300  # seconds
 PROBE_TIMEOUT = 8  # seconds per remote request
+# (user, password) for GetCapabilities probes. Set only by the `seed` CLI command:
+# hosted layers need geoserver-access, and the web process must not see restricted ones.
+PROBE_AUTH = None
 _cache = {}
 _cache_lock = threading.Lock()
 
@@ -194,8 +198,7 @@ def to_public_url(url):
 def is_hosted_url(url):
     url = url or ""
     return bool(url) and (
-        url.startswith(geoserver_public_url())
-        or url.startswith(geoserver_internal_url())
+        url.startswith((geoserver_public_url(), geoserver_internal_url()))
     )
 
 
@@ -293,10 +296,10 @@ def harvest_info(pkg):
                 "frequency": src.get("frequency"),
             }
         )
-    except (
-        Exception
-    ):  # noqa: BLE001 - harvest plugin missing or source deleted
-        pass
+    except Exception:
+        log.debug(
+            "no harvest source info for %s", info["source_id"], exc_info=True
+        )
     return info
 
 
@@ -325,6 +328,7 @@ def _get_capabilities(endpoint, service, version):
     resp = requests.get(
         full,
         timeout=PROBE_TIMEOUT,
+        auth=PROBE_AUTH,
         headers={
             "Accept": "application/xml,text/xml;q=0.9,*/*;q=0.8",
             "User-Agent": "Mozilla/5.0 (compatible; AMConnect-CKAN/0.2; +ckanext-amconnect)",
@@ -380,8 +384,8 @@ def probe_wms(endpoint):
         fmts = []
         try:
             fmts = wms.getOperationByName("GetFeatureInfo").formatOptions
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            log.debug("WMS has no GetFeatureInfo formats", exc_info=True)
         return {
             "ok": True,
             "cors": cors,
@@ -414,8 +418,8 @@ def probe_wfs(endpoint):
                 .parameters.get("outputFormat", {})
                 .get("values", [])
             )
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception:
+            log.debug("WFS has no GetFeature formats", exc_info=True)
         types = {
             n: {"title": t.title, "bbox": _bbox(t.boundingBoxWGS84)}
             for n, t in wfs.contents.items()
@@ -455,8 +459,8 @@ def probe_wcs(endpoint):
                 fmts = list(
                     wcs.getOperationByName("GetCoverage").formatOptions or []
                 )
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception:
+                log.debug("WCS has no GetCoverage formats", exc_info=True)
         return {
             "ok": True,
             "cors": cors,
@@ -523,9 +527,9 @@ def describe_resource(resource, pkg=None, probe=True):
     endpoint, layer = desc["endpoint"], desc["layer_name"]
 
     if svc == "wms":
-        caps[
-            "view"
-        ] = True  # the browser can always try GetMap; the probe refines the rest
+        caps["view"] = (
+            True  # the browser can always try GetMap; the probe refines the rest
+        )
         if probe:
             info = probe_wms(endpoint)
             desc["cors"] = info.get("cors")
