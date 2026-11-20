@@ -5,3 +5,7 @@ Mailpit
 pgAdmin
 pycsw
 [Cc]yclomatic
+AMVest
+ASEC
+AOCP
+AMCAP

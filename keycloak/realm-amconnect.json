@@ -18,7 +18,8 @@
         "composites": {
           "realm": [
             "offline_access",
-            "uma_authorization"
+            "uma_authorization",
+            "amvest-user"
           ],
           "client": {
             "account": []
@@ -30,16 +31,138 @@
         "description": "Administers AMConnect"
       },
       {
-        "name": "user-manager",
-        "description": "Can invite users"
-      },
-      {
         "name": "ckan-access",
         "description": "Can log in to CKAN"
       },
       {
         "name": "geoserver-access",
         "description": "Can read restricted GeoServer layers"
+      },
+      {
+        "name": "asec",
+        "description": "ASEAN Secretariat: manages ASEC and AOCP users and resources in all countries"
+      },
+      {
+        "name": "aocp",
+        "description": "Any AOCP country user; granted only through an aocp-<country> role"
+      },
+      {
+        "name": "aocp-bn",
+        "description": "AOCP country user for Brunei Darussalam",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-kh",
+        "description": "AOCP country user for Cambodia",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-id",
+        "description": "AOCP country user for Indonesia",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-la",
+        "description": "AOCP country user for Lao PDR",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-my",
+        "description": "AOCP country user for Malaysia",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-mm",
+        "description": "AOCP country user for Myanmar",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-ph",
+        "description": "AOCP country user for Philippines",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-sg",
+        "description": "AOCP country user for Singapore",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-th",
+        "description": "AOCP country user for Thailand",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-tl",
+        "description": "AOCP country user for Timor-Leste",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "aocp-vn",
+        "description": "AOCP country user for Viet Nam",
+        "composite": true,
+        "composites": {
+          "realm": [
+            "aocp"
+          ]
+        }
+      },
+      {
+        "name": "amvest-admin",
+        "description": "Manages AMVest forum users and posts"
+      },
+      {
+        "name": "amvest-user",
+        "description": "Takes part in the AMVest forum (every account)"
       }
     ]
   },
@@ -108,7 +231,6 @@
       "realmRoles": [
         "default-roles-amconnect",
         "super-admin",
-        "user-manager",
         "ckan-access",
         "geoserver-access"
       ]
