@@ -62,6 +62,7 @@ grant `ckan-access` and `geoserver-access` if they hold them. Nobody grants
 
 Country scope is a role, not a user attribute or group, because GeoServer's Keycloak
 filter reads only the token's realm roles. A user may hold several `aocp-<country>` roles.
+See [ADR 0001](docs/adr/0001-country-scope-as-roles.md).
 
 There is no `user-manager` role: the LLD leaves open whether every ASEC and AOCP user
 may invite, or only designated administrators, and this assumes every one. The next
