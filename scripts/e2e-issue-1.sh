@@ -95,8 +95,8 @@ PW=pw-$RUN-secret
 
 SA=$(token "$SUPERADMIN_EMAIL" "$SUPERADMIN_PASSWORD")
 check "super admin logs in" true "$([ -n "$SA" ] && echo true || echo false)"
-check "super admin invites A (user manager, CKAN, GeoServer)" 201 \
-  "$(invite "$SA" "$A" '["user-manager","ckan-access","geoserver-access"]')"
+check "super admin invites A (ASEC, CKAN, GeoServer)" 201 \
+  "$(invite "$SA" "$A" '["asec","ckan-access","geoserver-access"]')"
 check "A accepts the emailed invitation" 204 "$(accept "$A" "$PW")"
 check "inviting A again is a conflict" 409 "$(invite "$SA" "$A" '[]')"
 check "super admin invites D" 201 "$(invite "$SA" "d-$RUN@example.org" '[]')"
@@ -104,7 +104,7 @@ check "an invitation not yet accepted can be sent again" 201 "$(invite "$SA" "d-
 check "A logs in to CKAN from CKAN's login form" 302 "$(ckan_login "$A" "$PW")"
 
 TA=$(token "$A" "$PW")
-check "A cannot grant user-manager" 403 "$(invite "$TA" "x-$RUN@example.org" '["user-manager"]')"
+check "A cannot grant amvest-admin" 403 "$(invite "$TA" "x-$RUN@example.org" '["amvest-admin"]')"
 check "A invites B with CKAN access" 201 "$(invite "$TA" "$B" '["ckan-access"]')"
 check "A invites C without CKAN access" 201 "$(invite "$TA" "$C" '[]')"
 check "a password under 8 characters is refused" 400 "$(accept "$B" short)"

@@ -46,10 +46,27 @@ redirects through Keycloak to Google.
 
 | Realm role | Grants |
 |---|---|
-| `super-admin` | can grant `user-manager` |
-| `user-manager` | can invite users (Platform `/invite`), granting only access they hold |
+| `super-admin` | can grant `asec`, `aocp-*` and `amvest-admin` |
+| `asec` | ASEAN Secretariat; can grant `asec` and `aocp-*` |
+| `aocp-<country>` | AOCP country user for one Member State (`aocp-id` is Indonesia); can grant the same role |
+| `aocp` | any AOCP country user; part of every `aocp-<country>`, never granted alone |
+| `amvest-admin` | AMVest forum admin; grants nothing on the Platform or CKAN |
+| `amvest-user` | AMVest forum participant; a default role, so every account has it |
 | `ckan-access` | can log in to CKAN; without it CKAN refuses the login and creates no account |
 | `geoserver-access` | can read `amconnect` GeoServer layers with `Authorization: Bearer <access token>` |
+
+Anyone who can grant one of the roles above can invite (Platform `/invite`), and can also
+grant `ckan-access` and `geoserver-access` if they hold them. Nobody grants
+`super-admin`. The rules live in `backend/app/access.py`; the terms in
+[GLOSSARY.md](GLOSSARY.md).
+
+Country scope is a role, not a user attribute or group, because GeoServer's Keycloak
+filter reads only the token's realm roles. A user may hold several `aocp-<country>` roles.
+See [ADR 0001](docs/adr/0001-country-scope-as-roles.md).
+
+There is no `user-manager` role: the LLD leaves open whether every ASEC and AOCP user
+may invite, or only designated administrators, and this assumes every one. The next
+`docker compose up -d` deletes the role from Keycloak; users keep their other roles.
 
 Invitations are emailed (see Mailpit); the link lets the invitee set name and password,
 or continue with Google. Until the invitee does, inviting the same email again replaces

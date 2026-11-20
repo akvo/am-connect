@@ -24,9 +24,9 @@ export default async function Home(): Promise<ReactElement> {
         <p>
           Logged in as <strong>{me.name ?? me.email}</strong> ({me.email})
         </p>
-        <p>Roles: {me.roles.join(", ") || "none"}</p>
+        <p>Roles: {me.roles.map((r) => me.role_labels[r] ?? r).join(", ") || "none"}</p>
       </section>
-      {me.roles.includes("user-manager") && (
+      {me.grantable_roles.length > 0 && (
         <Link href="/invite" className="inline-block rounded bg-black px-3 py-2 text-white">
           Invite a user
         </Link>
