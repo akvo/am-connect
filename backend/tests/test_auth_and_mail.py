@@ -45,7 +45,15 @@ def test_me_lists_app_roles_only(monkeypatch):
     monkeypatch.setattr(keycloak, "verify", lambda token: claims)
     r = client.get("/me", headers={"authorization": "Bearer t"})
     assert r.json()["roles"] == ["ckan-access"]
-    assert r.json()["grantable_roles"] == ["ckan-access"]
+    assert r.json()["grantable_roles"] == []
+
+
+def test_me_reads_the_aocp_country_from_its_role(monkeypatch):
+    claims = {"sub": "u1", "realm_access": {"roles": ["aocp", "aocp-id"]}}
+    monkeypatch.setattr(keycloak, "verify", lambda token: claims)
+    r = client.get("/me", headers={"authorization": "Bearer t"}).json()
+    assert r["roles"] == r["grantable_roles"] == ["aocp-id"]
+    assert r["role_labels"]["aocp-id"] == "AOCP – Indonesia"
 
 
 def test_invalid_token_is_401(monkeypatch):

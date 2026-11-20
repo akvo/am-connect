@@ -12,6 +12,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlmodel import Session, col, delete, select, text
 
 from app import keycloak, mail
+from app.access import LABELS, NotAllowed, check_grant, grantable_roles, roles_of
 from app.db import engine
 from app.models import Invitation, utcnow
 
@@ -37,21 +38,6 @@ def current_user(
 
 SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(current_user)]
-
-
-APP_ROLES = {"super-admin", "user-manager", "ckan-access", "geoserver-access"}
-
-
-def roles_of(claims: dict) -> set[str]:
-    return set(claims.get("realm_access", {}).get("roles", [])) & APP_ROLES
-
-
-def grantable_roles(inviter_roles: set[str]) -> set[str]:
-    """An inviter grants only access they hold; only a super admin makes new user managers."""
-    allowed = inviter_roles & {"ckan-access", "geoserver-access"}
-    if "super-admin" in inviter_roles:
-        allowed.add("user-manager")
-    return allowed
 
 
 def hash_token(token: str) -> str:
@@ -105,7 +91,8 @@ def me(user: UserDep) -> dict:
         "email": user.get("email"),
         "name": user.get("name"),
         "roles": sorted(roles_of(user)),
-        "grantable_roles": sorted(grantable_roles(roles_of(user))),
+        "grantable_roles": sorted(grantable_roles(user)),
+        "role_labels": LABELS,
     }
 
 
@@ -146,15 +133,10 @@ def replace_unfinished_user(email: str, session: Session) -> None:
 def create_invitation(
     body: InvitationCreate, user: UserDep, session: SessionDep
 ) -> dict:
-    inviter_roles = roles_of(user)
-    if "user-manager" not in inviter_roles:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "You cannot invite users")
-    not_allowed = set(body.roles) - grantable_roles(inviter_roles)
-    if not_allowed:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            f"You cannot grant: {', '.join(sorted(not_allowed))}",
-        )
+    try:
+        check_grant(user, set(body.roles))
+    except NotAllowed as e:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, str(e))
     email = body.email.lower()
     replace_unfinished_user(email, session)
 

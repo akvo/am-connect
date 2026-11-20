@@ -4,12 +4,6 @@ import type { ReactElement } from "react";
 import { api, getMe } from "@/lib/api";
 import { Input } from "@/components/input";
 
-const ROLE_LABELS: Record<string, string> = {
-  "ckan-access": "Can log in to CKAN",
-  "geoserver-access": "Can read restricted GeoServer layers",
-  "user-manager": "Can invite users",
-};
-
 async function invite(form: FormData): Promise<void> {
   "use server";
   const email = String(form.get("email"));
@@ -33,7 +27,7 @@ export default async function InvitePage({
 }): Promise<ReactElement> {
   const { sent, error } = await searchParams;
   const me = await getMe();
-  if (!me.roles.includes("user-manager")) redirect("/");
+  if (!me.grantable_roles.length) redirect("/");
 
   return (
     <main className="mx-auto mt-16 w-full max-w-md space-y-6 p-4">
@@ -50,7 +44,7 @@ export default async function InvitePage({
           {me.grantable_roles.map((role) => (
             <label key={role} className="flex gap-2">
               <input type="checkbox" name="roles" value={role} />
-              {ROLE_LABELS[role] ?? role}
+              {me.role_labels[role] ?? role}
             </label>
           ))}
         </fieldset>

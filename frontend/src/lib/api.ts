@@ -9,6 +9,7 @@ export type Me = {
   name: string | null;
   roles: string[];
   grantable_roles: string[];
+  role_labels: Record<string, string>;
 };
 
 /** Calls the backend; with `asUser`, sends the signed-in user's token (or goes to /login). */

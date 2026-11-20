@@ -12,16 +12,18 @@ from app.models import Invitation, utcnow
 SUPER_ADMIN = {
     "sub": "u-super",
     "email": "admin@example.org",
-    "realm_access": {
-        "roles": ["super-admin", "user-manager", "ckan-access", "geoserver-access"]
-    },
+    "realm_access": {"roles": ["super-admin", "ckan-access", "geoserver-access"]},
 }
-MANAGER = {
+ASEC = {
     "sub": "u-a",
     "email": "a@example.org",
-    "realm_access": {"roles": ["user-manager", "ckan-access"]},
+    "realm_access": {"roles": ["asec", "ckan-access"]},
 }
-PLAIN = {"sub": "u-c", "realm_access": {"roles": ["ckan-access"]}}
+AOCP_ID = {"sub": "u-i", "realm_access": {"roles": ["aocp", "aocp-id", "ckan-access"]}}
+PLAIN = {
+    "sub": "u-c",
+    "realm_access": {"roles": ["ckan-access", "geoserver-access", "amvest-user"]},
+}
 
 
 @pytest.fixture
@@ -74,30 +76,28 @@ def token_of(env):
     return env.sent[-1][1].rsplit("/", 1)[1]
 
 
-def test_issue_flow_manager_invites_one_with_and_one_without_ckan(env):
+def test_issue_flow_asec_invites_one_with_and_one_without_ckan(env):
     env.as_user(SUPER_ADMIN)
-    assert (
-        invite(env, "a@example.org", ["user-manager", "ckan-access"]).status_code == 201
-    )
+    assert invite(env, "a@example.org", ["asec", "ckan-access"]).status_code == 201
 
-    env.as_user(MANAGER)
+    env.as_user(ASEC)
     assert invite(env, "b@example.org", ["ckan-access"]).status_code == 201
     assert invite(env, "c@example.org", []).status_code == 201
     assert set(env.created) == {"a@example.org", "b@example.org", "c@example.org"}
 
 
-def test_inviter_cannot_grant_roles_they_do_not_hold(env):
-    env.as_user(MANAGER)
+def test_inviter_cannot_grant_access_they_do_not_hold(env):
+    env.as_user(ASEC)
     r = invite(env, "b@example.org", ["geoserver-access"])
     assert r.status_code == 403
     assert "geoserver-access" in r.json()["detail"]
 
 
-def test_only_super_admin_grants_user_manager(env):
-    env.as_user(MANAGER)
-    assert invite(env, "b@example.org", ["user-manager"]).status_code == 403
+def test_only_super_admin_grants_amvest_admin(env):
+    env.as_user(ASEC)
+    assert invite(env, "b@example.org", ["amvest-admin"]).status_code == 403
     env.as_user(SUPER_ADMIN)
-    assert invite(env, "b@example.org", ["user-manager"]).status_code == 201
+    assert invite(env, "b@example.org", ["amvest-admin"]).status_code == 201
 
 
 def test_super_admin_role_is_never_grantable(env):
@@ -105,10 +105,27 @@ def test_super_admin_role_is_never_grantable(env):
     assert invite(env, "b@example.org", ["super-admin"]).status_code == 403
 
 
-def test_inviting_needs_user_manager(env):
+def test_inviting_needs_a_role_that_manages_users(env):
     env.as_user(PLAIN)
+    assert invite(env, "b@example.org", ["ckan-access"]).status_code == 403
+    env.as_user({"sub": "u-x", "realm_access": {"roles": ["aocp"]}})
     assert invite(env, "b@example.org", []).status_code == 403
     assert env.created == {}
+
+
+def test_aocp_grants_aocp_in_own_country_only(env):
+    env.as_user(AOCP_ID)
+    assert invite(env, "b@example.org", ["aocp-id", "ckan-access"]).status_code == 201
+    for role in ("aocp-th", "aocp", "asec", "super-admin", "amvest-admin"):
+        assert invite(env, "c@example.org", [role]).status_code == 403
+    assert set(env.created) == {"b@example.org"}
+
+
+def test_asec_grants_asec_and_aocp_in_any_country(env):
+    env.as_user(ASEC)
+    assert invite(env, "a@example.org", ["asec"]).status_code == 201
+    assert invite(env, "b@example.org", ["aocp-th", "aocp-vn"]).status_code == 201
+    assert invite(env, "c@example.org", ["aocp-xx"]).status_code == 403
 
 
 def test_existing_user_is_not_invited_again(env, monkeypatch):
