@@ -52,3 +52,7 @@ _Avoid_: country label
 **Member State**:
 One of the eleven ASEAN countries.
 _Avoid_: member country
+
+**Country organisation**:
+The Data Service organisation of one Member State, holding that country's datasets.
+ASEC users edit all of them; an AOCP country user edits those in their country scope.

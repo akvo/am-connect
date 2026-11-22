@@ -2,10 +2,10 @@
 # End-to-end check of issue #1 against the running stack with demo data
 # (README "Demo data": its GeoServer layers are what access is checked on).
 #
-#   super admin invites A (user manager, CKAN, GeoServer)  -> A accepts via the emailed link
+#   super admin invites A (ASEC, GeoServer)                 -> A accepts via the emailed link
 #   A logs in to CKAN from CKAN's own login form
 #   inviting A again is refused; an unaccepted invitation to D can be sent again
-#   A invites B (CKAN) and C (no access)                   -> both accept
+#   A invites B (AOCP Thailand) and C (no role)            -> both accept
 #   B logs in to CKAN, C is refused
 #   only A reads GeoServer layers; B, C and anonymous are refused
 #   A stays logged in to the platform after its access and refresh tokens expire
@@ -96,17 +96,17 @@ PW=pw-$RUN-secret
 SA=$(token "$SUPERADMIN_EMAIL" "$SUPERADMIN_PASSWORD")
 check "super admin logs in" true "$([ -n "$SA" ] && echo true || echo false)"
 check "super admin invites A (ASEC, CKAN, GeoServer)" 201 \
-  "$(invite "$SA" "$A" '["asec","ckan-access","geoserver-access"]')"
+  "$(invite "$SA" "$A" '["asec","geoserver-access"]')"
 check "A accepts the emailed invitation" 204 "$(accept "$A" "$PW")"
 check "inviting A again is a conflict" 409 "$(invite "$SA" "$A" '[]')"
 check "super admin invites D" 201 "$(invite "$SA" "d-$RUN@example.org" '[]')"
-check "an invitation not yet accepted can be sent again" 201 "$(invite "$SA" "d-$RUN@example.org" '["ckan-access"]')"
+check "an invitation not yet accepted can be sent again" 201 "$(invite "$SA" "d-$RUN@example.org" '["aocp-th"]')"
 check "A logs in to CKAN from CKAN's login form" 302 "$(ckan_login "$A" "$PW")"
 
 TA=$(token "$A" "$PW")
 check "A cannot grant amvest-admin" 403 "$(invite "$TA" "x-$RUN@example.org" '["amvest-admin"]')"
-check "A invites B with CKAN access" 201 "$(invite "$TA" "$B" '["ckan-access"]')"
-check "A invites C without CKAN access" 201 "$(invite "$TA" "$C" '[]')"
+check "A invites B as AOCP Thailand" 201 "$(invite "$TA" "$B" '["aocp-th"]')"
+check "A invites C without a role" 201 "$(invite "$TA" "$C" '[]')"
 check "a password under 8 characters is refused" 400 "$(accept "$B" short)"
 check "B accepts" 204 "$(accept "$B" "$PW")"
 check "C accepts" 204 "$(accept "$C" "$PW")"

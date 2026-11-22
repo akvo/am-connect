@@ -1,17 +1,20 @@
 """Keycloak login for CKAN without showing any Keycloak page (issue #1).
 
 * CKAN's own login form: the password is checked with Keycloak's password grant.
-  Keycloak users without the ``ckan-access`` realm role are refused and get no
-  CKAN account. Unknown logins fall through to CKAN's own users (local sysadmin).
+  Only Super Admin, ASEC and AOCP country users get in; others are refused and get
+  no CKAN account. Unknown logins fall through to CKAN's own users (local sysadmin).
 * ``/user/login/google``: authorization-code flow with ``kc_idp_hint=google``, so
   Keycloak only redirects and the user sees Google's page.
 * Logout also ends the Keycloak session.
 
 CKAN users are named by the Keycloak user id (a UUID fits CKAN's name rules).
+At every login their country organisation memberships and sysadmin flag are set
+from their roles, so role changes in Keycloak apply at the next login.
 """
 
 import base64
 import hashlib
+import logging
 import secrets
 from urllib.parse import urlencode
 
@@ -23,8 +26,23 @@ from ckan import model
 from ckan.common import login_user, session
 from flask import Blueprint
 
-ROLE = "ckan-access"
+log = logging.getLogger(__name__)
 CLIENT_ID = "ckan"
+# Member States by organisation name; the codes match the roles `aocp-<code>` and are
+# shared with other platforms, so they are the names
+COUNTRIES = {
+    "bn": "Brunei Darussalam",
+    "kh": "Cambodia",
+    "id": "Indonesia",
+    "la": "Lao PDR",
+    "my": "Malaysia",
+    "mm": "Myanmar",
+    "ph": "Philippines",
+    "sg": "Singapore",
+    "th": "Thailand",
+    "tl": "Timor-Leste",
+    "vn": "Viet Nam",
+}
 
 
 def _conf(key):
@@ -82,11 +100,71 @@ def _ckan_user(claims):
     return user
 
 
+def _roles(claims):
+    return set(claims.get("realm_access", {}).get("roles", []))
+
+
+def _countries(roles):
+    """The country organisations these roles may edit."""
+    if "asec" in roles:
+        return set(COUNTRIES)
+    return {code for code in COUNTRIES if f"aocp-{code}" in roles}
+
+
 def _has_access(claims):
-    return ROLE in claims.get("realm_access", {}).get("roles", [])
+    roles = _roles(claims)
+    return "super-admin" in roles or bool(_countries(roles))
 
 
-def _deny():
+def _sync_access(user, roles):
+    """Makes the user's country organisation memberships and sysadmin flag match their
+    roles, writing only what differs. Other organisations are left alone; in country
+    organisations, roles decide, so a hand-made admin there becomes editor again."""
+    if user.sysadmin != ("super-admin" in roles):
+        user.sysadmin = "super-admin" in roles
+        model.repo.commit()
+    current = {
+        m.group.name: m.capacity
+        for m in model.Session.query(model.Member).filter_by(
+            table_name="user", table_id=user.id, state="active"
+        )
+        if m.group.is_organization and m.group.name in COUNTRIES
+    }
+    wanted = _countries(roles)
+    site_user = tk.get_action("get_site_user")({"ignore_auth": True}, {})[
+        "name"
+    ]
+    for code in wanted - {c for c, cap in current.items() if cap == "editor"}:
+        if model.Group.get(code) is None:
+            log.warning(
+                "country organisation %s is missing; run seed-countries", code
+            )
+            continue
+        tk.get_action("organization_member_create")(
+            {"ignore_auth": True, "user": site_user},
+            {"id": code, "username": user.name, "role": "editor"},
+        )
+    for code in set(current) - wanted:
+        tk.get_action("organization_member_delete")(
+            {"ignore_auth": True, "user": site_user},
+            {"id": code, "username": user.name},
+        )
+
+
+def _login(claims):
+    """The CKAN user for these claims, with access synced from their roles."""
+    user = _ckan_user(claims)
+    _sync_access(user, _roles(claims))
+    return user
+
+
+def _refuse(claims, refresh_token):
+    """Refuses the login. A user who had access before loses what earlier logins gave
+    them, or their API tokens would keep it."""
+    user = model.User.get(claims["sub"])
+    if user is not None:
+        _sync_access(user, set())
+    _logout_keycloak(refresh_token)
     tk.h.flash_error(
         tk._("Your account has no access to the AMConnect Data Service.")
     )
@@ -159,10 +237,9 @@ def google_callback():
         return tk.redirect_to("user.login")
     claims = _claims(tokens)
     if not _has_access(claims):
-        _logout_keycloak(tokens["refresh_token"])
-        _deny()
+        _refuse(claims, tokens["refresh_token"])
         return tk.redirect_to("user.login")
-    login_user(_ckan_user(claims))
+    login_user(_login(claims))
     session["kc_refresh_token"] = tokens["refresh_token"]
     return tk.redirect_to("dashboard.datasets")
 
@@ -188,11 +265,10 @@ class AmconnectKeycloakPlugin(p.SingletonPlugin):
             return None  # not a Keycloak user (or wrong password): CKAN's own login
         claims = _claims(tokens)
         if not _has_access(claims):
-            _logout_keycloak(tokens["refresh_token"])
-            _deny()
+            _refuse(claims, tokens["refresh_token"])
             return None
         session["kc_refresh_token"] = tokens["refresh_token"]
-        return _ckan_user(claims)
+        return _login(claims)
 
     def logout(self):
         refresh_token = session.pop("kc_refresh_token", None)

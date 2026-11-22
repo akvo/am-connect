@@ -31,10 +31,6 @@
         "description": "Administers AMConnect"
       },
       {
-        "name": "ckan-access",
-        "description": "Can log in to CKAN"
-      },
-      {
         "name": "geoserver-access",
         "description": "Can read restricted GeoServer layers"
       },
@@ -231,7 +227,6 @@
       "realmRoles": [
         "default-roles-amconnect",
         "super-admin",
-        "ckan-access",
         "geoserver-access"
       ]
     },

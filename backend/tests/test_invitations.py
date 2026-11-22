@@ -12,17 +12,20 @@ from app.models import Invitation, utcnow
 SUPER_ADMIN = {
     "sub": "u-super",
     "email": "admin@example.org",
-    "realm_access": {"roles": ["super-admin", "ckan-access", "geoserver-access"]},
+    "realm_access": {"roles": ["super-admin", "geoserver-access"]},
 }
 ASEC = {
     "sub": "u-a",
     "email": "a@example.org",
-    "realm_access": {"roles": ["asec", "ckan-access"]},
+    "realm_access": {"roles": ["asec", "geoserver-access"]},
 }
-AOCP_ID = {"sub": "u-i", "realm_access": {"roles": ["aocp", "aocp-id", "ckan-access"]}}
+AOCP_ID = {
+    "sub": "u-i",
+    "realm_access": {"roles": ["aocp", "aocp-id", "geoserver-access"]},
+}
 PLAIN = {
     "sub": "u-c",
-    "realm_access": {"roles": ["ckan-access", "geoserver-access", "amvest-user"]},
+    "realm_access": {"roles": ["geoserver-access", "amvest-user"]},
 }
 
 
@@ -76,18 +79,18 @@ def token_of(env):
     return env.sent[-1][1].rsplit("/", 1)[1]
 
 
-def test_issue_flow_asec_invites_one_with_and_one_without_ckan(env):
+def test_issue_flow_asec_invites_one_with_and_one_without_geoserver(env):
     env.as_user(SUPER_ADMIN)
-    assert invite(env, "a@example.org", ["asec", "ckan-access"]).status_code == 201
+    assert invite(env, "a@example.org", ["asec", "geoserver-access"]).status_code == 201
 
     env.as_user(ASEC)
-    assert invite(env, "b@example.org", ["ckan-access"]).status_code == 201
+    assert invite(env, "b@example.org", ["geoserver-access"]).status_code == 201
     assert invite(env, "c@example.org", []).status_code == 201
     assert set(env.created) == {"a@example.org", "b@example.org", "c@example.org"}
 
 
 def test_inviter_cannot_grant_access_they_do_not_hold(env):
-    env.as_user(ASEC)
+    env.as_user({"sub": "u-a", "realm_access": {"roles": ["asec"]}})
     r = invite(env, "b@example.org", ["geoserver-access"])
     assert r.status_code == 403
     assert "geoserver-access" in r.json()["detail"]
@@ -107,7 +110,7 @@ def test_super_admin_role_is_never_grantable(env):
 
 def test_inviting_needs_a_role_that_manages_users(env):
     env.as_user(PLAIN)
-    assert invite(env, "b@example.org", ["ckan-access"]).status_code == 403
+    assert invite(env, "b@example.org", ["geoserver-access"]).status_code == 403
     env.as_user({"sub": "u-x", "realm_access": {"roles": ["aocp"]}})
     assert invite(env, "b@example.org", []).status_code == 403
     assert env.created == {}
@@ -115,7 +118,9 @@ def test_inviting_needs_a_role_that_manages_users(env):
 
 def test_aocp_grants_aocp_in_own_country_only(env):
     env.as_user(AOCP_ID)
-    assert invite(env, "b@example.org", ["aocp-id", "ckan-access"]).status_code == 201
+    assert (
+        invite(env, "b@example.org", ["aocp-id", "geoserver-access"]).status_code == 201
+    )
     for role in ("aocp-th", "aocp", "asec", "super-admin", "amvest-admin"):
         assert invite(env, "c@example.org", [role]).status_code == 403
     assert set(env.created) == {"b@example.org"}
@@ -144,23 +149,23 @@ def test_unfinished_invitation_is_replaced(env, monkeypatch):
     monkeypatch.setattr(keycloak, "find_user", lambda email: {"id": "kc-old"})
     monkeypatch.setattr(keycloak, "can_sign_in", lambda uid: False)
     monkeypatch.setattr(keycloak, "delete_user", deleted.append)
-    assert invite(env, "a@example.org", ["ckan-access"]).status_code == 201
+    assert invite(env, "a@example.org", ["aocp-th"]).status_code == 201
 
     assert deleted == ["kc-old"]
     assert env.client.get(f"/invitations/{old_token}").status_code == 404
     assert env.client.get(f"/invitations/{token_of(env)}").json()["roles"] == [
-        "ckan-access"
+        "aocp-th"
     ]
 
 
 def test_accept_sets_password_once(env):
     env.as_user(SUPER_ADMIN)
-    invite(env, "a@example.org", ["ckan-access"])
+    invite(env, "a@example.org", ["aocp-th"])
     token = token_of(env)
 
     assert env.client.get(f"/invitations/{token}").json() == {
         "email": "a@example.org",
-        "roles": ["ckan-access"],
+        "roles": ["aocp-th"],
     }
     r = env.client.post(
         f"/invitations/{token}/accept",

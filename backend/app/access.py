@@ -18,14 +18,13 @@ COUNTRIES = {
 AOCP_ROLES = {f"aocp-{code}": name for code, name in COUNTRIES.items()}
 LABELS = {
     "super-admin": "Super Admin",
-    "ckan-access": "CKAN access",
     "geoserver-access": "Restricted GeoServer layers",
     "asec": "ASEC",
     "amvest-admin": "AMVest Admin",
     "amvest-user": "AMVest user",
     **{role: f"AOCP – {name}" for role, name in AOCP_ROLES.items()},
 }
-ACCESS_SWITCHES = {"ckan-access", "geoserver-access"}
+ACCESS_SWITCHES = {"geoserver-access"}
 
 
 class NotAllowed(Exception):
