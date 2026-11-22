@@ -17,3 +17,10 @@ class Invitation(SQLModel, table=True):
     expires_at: datetime
     accepted_at: datetime | None = None
     created_at: datetime = Field(default_factory=utcnow)
+
+
+class User(SQLModel, table=True):
+    id: str = Field(primary_key=True)  # Keycloak user id
+    email: str
+    name: str | None = None
+    created_at: datetime = Field(default_factory=utcnow)

@@ -40,7 +40,7 @@ def test_logout_ends_keycloak_session(monkeypatch):
     assert ended == ["r"]
 
 
-def test_me_lists_app_roles_only(monkeypatch):
+def test_me_lists_app_roles_only(monkeypatch, db):
     claims = {"sub": "u1", "realm_access": {"roles": ["ckan-access", "offline_access"]}}
     monkeypatch.setattr(keycloak, "verify", lambda token: claims)
     r = client.get("/me", headers={"authorization": "Bearer t"})
@@ -48,7 +48,7 @@ def test_me_lists_app_roles_only(monkeypatch):
     assert r.json()["grantable_roles"] == []
 
 
-def test_me_reads_the_aocp_country_from_its_role(monkeypatch):
+def test_me_reads_the_aocp_country_from_its_role(monkeypatch, db):
     claims = {"sub": "u1", "realm_access": {"roles": ["aocp", "aocp-id"]}}
     monkeypatch.setattr(keycloak, "verify", lambda token: claims)
     r = client.get("/me", headers={"authorization": "Bearer t"}).json()
