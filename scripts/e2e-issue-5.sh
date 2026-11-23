@@ -7,11 +7,13 @@
 #   AMVest Admin (R): dashboard and WebGIS open; CMS and Users show 403, not in the navigation
 #   user list: the super admin sees P and R; P does not see R; R is refused
 #   logout ends the session
+#   the frontend logs no errors meanwhile (prerendering, Auth.js events)
 set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 . scripts/e2e-lib.sh
 
+START=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 P=p-$RUN@example.org R=r-$RUN@example.org
 PW=pw-$RUN-secret
 
@@ -25,6 +27,7 @@ check "anonymous opens the landing page" 200 "$(page "$ANON" /)"
 check "anonymous opens the login page" 200 "$(page "$ANON" /login)"
 check "anonymous on /cms is sent to login" "307 $WEB/login?callbackUrl=%2Fcms%3Fq%3D1" \
   "$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' "$WEB/cms?q=1")"
+curl -s -o /dev/null "$WEB/invite/no-such-token"
 check "the login form keeps the page asked for" 1 \
   "$(curl -s "$WEB/login?callbackUrl=%2Fcms" | grep -c 'name="callbackUrl" value="/cms"')"
 rm -f "$ANON"
@@ -69,6 +72,8 @@ csrf=$(curl -s -c "$JP" -b "$JP" "$WEB/api/auth/csrf" | json '["csrfToken"]')
 curl -s -o /dev/null -c "$JP" -b "$JP" "$WEB/api/auth/signout" --data-urlencode "csrfToken=$csrf"
 check "after logout P is sent to login" 307 "$(page "$JP" /dashboard)"
 rm -f "$JP" "$JR"
+check "the frontend logged no errors" 0 \
+  "$(docker compose logs frontend --since "$START" | grep -ciE 'error')"
 
 echo
 [ "$failures" = 0 ] && echo "All checks passed." || { echo "$failures check(s) failed."; exit 1; }

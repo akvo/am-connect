@@ -21,7 +21,7 @@ async function backend(path: string, body: unknown): Promise<Tokens | null> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  return r.ok ? r.json() : null;
+  return r.ok && r.status !== 204 ? r.json() : null; // logout answers 204, no body
 }
 
 function fromTokens(t: Tokens): Partial<JWT> {

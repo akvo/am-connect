@@ -32,6 +32,9 @@ async function idpLogin(idp: string): Promise<void> {
   await signInWith(idp);
 }
 
+// Nothing to prerender: the invitation is looked up per request.
+export const instant = false;
+
 export default async function AcceptInvitePage({
   params,
   searchParams,

@@ -33,6 +33,9 @@ async function idpLogin(idp: string, callbackUrl?: string): Promise<void> {
   await signInWith(idp, callbackUrl);
 }
 
+// Nothing to prerender: its messages and return page come from the URL.
+export const instant = false;
+
 export default async function LoginPage({
   searchParams,
 }: {
