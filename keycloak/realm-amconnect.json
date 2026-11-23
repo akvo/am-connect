@@ -256,12 +256,25 @@
         "clientSecret": "$(env:GOOGLE_CLIENT_SECRET)",
         "syncMode": "FORCE"
       }
+    },
+    {
+      "alias": "microsoft",
+      "providerId": "microsoft",
+      "enabled": true,
+      "trustEmail": true,
+      "firstBrokerLoginFlowAlias": "invite-only first login",
+      "config": {
+        "clientId": "$(env:AZURE_CLIENT_ID)",
+        "clientSecret": "$(env:AZURE_CLIENT_SECRET)",
+        "tenantId": "$(env:AZURE_TENANT_ID)",
+        "syncMode": "FORCE"
+      }
     }
   ],
   "authenticationFlows": [
     {
       "alias": "invite-only first login",
-      "description": "Google login links to an invited (existing) user without showing any page; anyone else is refused",
+      "description": "Google or Microsoft login links to an invited (existing) user without showing any page; anyone else is refused",
       "providerId": "basic-flow",
       "topLevel": true,
       "builtIn": false,

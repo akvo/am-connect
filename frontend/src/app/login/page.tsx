@@ -1,7 +1,7 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { googleLoginEnabled, signIn } from "@/auth";
+import { loginProviders, signIn, signInWith } from "@/auth";
 import { Input } from "@/components/input";
 
 const MESSAGES: Record<string, string> = {
@@ -23,9 +23,9 @@ async function passwordLogin(form: FormData): Promise<void> {
   }
 }
 
-async function googleLogin(): Promise<void> {
+async function idpLogin(idp: string): Promise<void> {
   "use server";
-  await signIn("keycloak", { redirectTo: "/" });
+  await signInWith(idp);
 }
 
 export default async function LoginPage({
@@ -52,11 +52,11 @@ export default async function LoginPage({
         />
         <button className="w-full rounded bg-black p-2 text-white">Log in</button>
       </form>
-      {googleLoginEnabled && (
-        <form action={googleLogin}>
-          <button className="w-full rounded border p-2">Continue with Google</button>
+      {loginProviders.map(({ idp, label }) => (
+        <form key={idp} action={idpLogin.bind(null, idp)}>
+          <button className="w-full rounded border p-2">Continue with {label}</button>
         </form>
-      )}
+      ))}
     </main>
   );
 }

@@ -7,7 +7,11 @@ const BACKEND = process.env.BACKEND_INTERNAL_URL;
 const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ISSUER!; // browser URL, as written in tokens
 const KEYCLOAK_INTERNAL = `${process.env.KEYCLOAK_INTERNAL_URL}/realms/amconnect/protocol/openid-connect`;
 
-export const googleLoginEnabled = process.env.GOOGLE_LOGIN_ENABLED === "true";
+// Keycloak identity providers offered as "Continue with …" buttons
+export const loginProviders = [
+  { idp: "google", label: "Google", enabled: process.env.GOOGLE_LOGIN_ENABLED === "true" },
+  { idp: "microsoft", label: "Microsoft", enabled: process.env.MICROSOFT_LOGIN_ENABLED === "true" },
+].filter((p) => p.enabled);
 
 type Tokens = { access_token: string; refresh_token: string; expires_in: number };
 
@@ -38,14 +42,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return tokens ? { tokens } : null;
       },
     }),
-    // Google login: Keycloak only redirects (kc_idp_hint), the user sees Google's page.
+    // Google or Microsoft login: Keycloak only redirects (kc_idp_hint, set per sign-in by
+    // signInWith), so the user sees only that provider's page.
     Keycloak({
       clientId: "platform",
       clientSecret: process.env.PLATFORM_CLIENT_SECRET,
       issuer: KEYCLOAK_ISSUER,
       authorization: {
         url: `${KEYCLOAK_ISSUER}/protocol/openid-connect/auth`,
-        params: { scope: "openid email profile", kc_idp_hint: "google" },
+        params: { scope: "openid email profile" },
       },
       token: `${KEYCLOAK_INTERNAL}/token`,
       userinfo: `${KEYCLOAK_INTERNAL}/userinfo`,
@@ -95,4 +100,10 @@ declare module "next-auth/jwt" {
     refreshToken?: string;
     expiresAt?: number;
   }
+}
+
+export async function signInWith(idp: string): Promise<void> {
+  // the bound argument comes from the browser; an unknown one would show Keycloak's page
+  if (!loginProviders.some((p) => p.idp === idp)) throw new Error("Unknown login provider");
+  await signIn("keycloak", { redirectTo: "/" }, { kc_idp_hint: idp });
 }

@@ -3,8 +3,8 @@
 * CKAN's own login form: the password is checked with Keycloak's password grant.
   Only Super Admin, ASEC and AOCP country users get in; others are refused and get
   no CKAN account. Unknown logins fall through to CKAN's own users (local sysadmin).
-* ``/user/login/google``: authorization-code flow with ``kc_idp_hint=google``, so
-  Keycloak only redirects and the user sees Google's page.
+* ``/user/login/<idp>`` (``google``, ``microsoft``): authorization-code flow with
+  ``kc_idp_hint``, so Keycloak only redirects and the user sees that provider's page.
 * Logout also ends the Keycloak session.
 
 CKAN users are named by the Keycloak user id (a UUID fits CKAN's name rules).
@@ -182,17 +182,29 @@ def _logout_keycloak(refresh_token):
     )
 
 
-# ----------------------------------------------------------------- Google flow
+# ------------------------------------------------- Google and Microsoft flow
 
-google = Blueprint("amconnect_keycloak", __name__)
+# Keycloak identity provider alias -> button label
+PROVIDERS = {"google": "Google", "microsoft": "Microsoft"}
+
+idp_login = Blueprint("amconnect_keycloak", __name__)
 
 
-def _redirect_uri():
-    return tk.url_for("amconnect_keycloak.google_callback", _external=True)
+def _redirect_uri(idp):
+    return tk.url_for("amconnect_keycloak.callback", idp=idp, _external=True)
 
 
-@google.route("/user/login/google")
-def google_login():
+def _failed(idp):
+    tk.h.flash_error(
+        tk._("%s login failed. Please try again.") % PROVIDERS[idp]
+    )
+    return tk.redirect_to("user.login")
+
+
+@idp_login.route("/user/login/<idp>")
+def login(idp):
+    if idp not in PROVIDERS:
+        return tk.abort(404)
     verifier = secrets.token_urlsafe(48)
     session["kc_state"] = state = secrets.token_urlsafe(24)
     session["kc_verifier"] = verifier
@@ -206,35 +218,35 @@ def google_login():
             "client_id": CLIENT_ID,
             "response_type": "code",
             "scope": "openid email profile",
-            "redirect_uri": _redirect_uri(),
+            "redirect_uri": _redirect_uri(idp),
             "state": state,
             "code_challenge": challenge,
             "code_challenge_method": "S256",
-            "kc_idp_hint": "google",
+            "kc_idp_hint": idp,
         }
     )
     return tk.redirect_to(f"{_oidc(_conf('public_url'))}/auth?{query}")
 
 
-@google.route("/user/login/google/callback")
-def google_callback():
+@idp_login.route("/user/login/<idp>/callback")
+def callback(idp):
+    if idp not in PROVIDERS:
+        return tk.abort(404)
     state = session.pop("kc_state", None)
     verifier = session.pop("kc_verifier", None)
     args = tk.request.args
     if not state or args.get("state") != state or "code" not in args:
-        tk.h.flash_error(tk._("Google login failed. Please try again."))
-        return tk.redirect_to("user.login")
+        return _failed(idp)
     tokens = _token(
         {
             "grant_type": "authorization_code",
             "code": args["code"],
-            "redirect_uri": _redirect_uri(),
+            "redirect_uri": _redirect_uri(idp),
             "code_verifier": verifier,
         }
     )
     if tokens is None:
-        tk.h.flash_error(tk._("Google login failed. Please try again."))
-        return tk.redirect_to("user.login")
+        return _failed(idp)
     claims = _claims(tokens)
     if not _has_access(claims):
         _refuse(claims, tokens["refresh_token"])
@@ -276,9 +288,13 @@ class AmconnectKeycloakPlugin(p.SingletonPlugin):
             _logout_keycloak(refresh_token)
 
     def get_blueprint(self):
-        return google
+        return idp_login
 
     def get_helpers(self):
         return {
-            "amconnect_google_login": lambda: _conf("google_login") == "true"
+            "amconnect_login_providers": lambda: {
+                idp: label
+                for idp, label in PROVIDERS.items()
+                if _conf(f"{idp}_login") == "true"
+            }
         }

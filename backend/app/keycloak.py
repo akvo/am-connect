@@ -91,7 +91,7 @@ def find_user(email: str) -> dict | None:
 
 
 def can_sign_in(user_id: str) -> bool:
-    """True once the user has a password or a linked Google account."""
+    """True once the user has a password or a linked Google or Microsoft account."""
     with _admin() as kc:
         for path in ("credentials", "federated-identity"):
             r = kc.get(f"/users/{user_id}/{path}")
@@ -107,8 +107,8 @@ def delete_user(user_id: str) -> None:
 
 
 def create_user(email: str, roles: list[str]) -> str:
-    """Creates an enabled user with a verified email and no password, so Google login can
-    link to it right away. Returns the Keycloak user id."""
+    """Creates an enabled user with a verified email and no password, so Google or Microsoft
+    login can link to it right away. Returns the Keycloak user id."""
     with _admin() as kc:
         reps = []  # looked up first, so a bad role name fails before the user exists
         for name in roles:
