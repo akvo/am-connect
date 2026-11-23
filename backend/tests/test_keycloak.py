@@ -189,3 +189,17 @@ def test_verify_rejects_other_clients_issuers_id_tokens_and_expired(
 ):
     with pytest.raises(jwt.InvalidTokenError):
         keycloak.verify(signed(**claims))
+
+
+def test_users_by_role_merges_the_roles_each_user_holds(kc):
+    p = {"id": "p", "email": "p@example.org", "enabled": True}
+    q = {"id": "q", "email": "q@example.org", "enabled": False}
+    kc.routes[("GET", f"{ADMIN}/roles/asec/users")] = httpx2.Response(200, json=[q])
+    kc.routes[("GET", f"{ADMIN}/roles/aocp-id/users")] = httpx2.Response(
+        200, json=[p, q]
+    )
+
+    users = {u["id"]: u for u in keycloak.users_by_role(["asec", "aocp-id"])}
+    assert users["p"]["roles"] == {"aocp-id"}
+    assert users["q"]["roles"] == {"asec", "aocp-id"}
+    assert users["q"]["enabled"] is False

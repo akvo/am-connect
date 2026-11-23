@@ -18,6 +18,7 @@ from app.access import (
     LABELS,
     NotAllowed,
     areas_of,
+    can_manage,
     check_grant,
     grantable_roles,
     roles_of,
@@ -140,6 +141,27 @@ def me(user: UserDep) -> dict:
         "areas": sorted(areas_of(user)),
         "role_labels": LABELS,
     }
+
+
+@app.get("/users", dependencies=[require_area("users")])
+def list_users(user: UserDep) -> list[dict]:
+    """The users the caller manages, from Keycloak (amvest-user is everyone's, so skipped)."""
+    users = keycloak.users_by_role(sorted(LABELS.keys() - {"amvest-user"}))
+    return sorted(
+        (
+            {
+                "id": u["id"],
+                "email": u.get("email"),
+                "name": " ".join(filter(None, [u.get("firstName"), u.get("lastName")]))
+                or None,
+                "roles": sorted(u["roles"]),
+                "enabled": u["enabled"],
+            }
+            for u in users
+            if u["id"] != user["sub"] and can_manage(user, u["roles"])
+        ),
+        key=lambda u: u["email"] or "",
+    )
 
 
 # ------------------------------------------------------------------ invitations

@@ -71,6 +71,10 @@ platform_login() { # platform_login <email> <password> <cookie jar>
     --data-urlencode "csrfToken=$csrf" --data-urlencode "email=$1" --data-urlencode "password=$2"
 }
 
-home() { # home <cookie jar> -> HTTP status of the platform home page (307 means sent to login)
-  curl -s -o /dev/null -w '%{http_code}' -c "$1" -b "$1" "$WEB/"
+home() { # home <cookie jar> -> HTTP status of the dashboard (307 means sent to login)
+  page "$1" /dashboard
+}
+
+page() { # page <cookie jar> <path> -> HTTP status of a platform page
+  curl -s -o /dev/null -w '%{http_code}' -c "$1" -b "$1" "$WEB$2"
 }

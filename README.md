@@ -54,10 +54,24 @@ login only redirect through Keycloak to Google or Microsoft.
 | `amvest-user` | AMVest forum participant; a default role, so every account has it |
 | `geoserver-access` | can read `amconnect` GeoServer layers with `Authorization: Bearer <access token>` |
 
-Anyone who can grant one of the roles above can invite (Platform `/invite`), and can also
+Anyone who can grant one of the roles above can invite (Platform `/users/invite`), and can also
 grant `geoserver-access` if they hold it. Nobody grants
 `super-admin`. The rules live in `backend/app/access.py`; the terms in
 [GLOSSARY.md](GLOSSARY.md).
+
+Platform pages: `/`, `/login` and `/invite/<token>` are public; every other page sends a
+visitor to `/login` and back after login. Areas open by role, from `AREAS` in
+`backend/app/access.py`, which also fills `/me`'s `areas`:
+
+| Area | Page | Roles |
+|---|---|---|
+| CMS | `/cms` | `super-admin`, `asec`, `aocp-<country>` |
+| User administration | `/users` | `super-admin`, `asec`, `aocp-<country>` |
+| WebGIS | `/webgis` | anyone signed in |
+
+The navigation shows only the user's areas; any other area shows a "No access" page (403).
+Pages check with `requireArea()` (`frontend/src/lib/api.ts`), API endpoints with
+`require_area()` or `require_roles()` (`backend/app/main.py`).
 
 CKAN lets in `super-admin`, `asec` and `aocp-<country>` holders; everyone else is refused
 and gets no CKAN account. Each Member State has a country organisation named by its code
@@ -96,7 +110,9 @@ every start.
 Check the whole flow against the running stack (with demo data loaded, see below):
 
 ```bash
-./scripts/e2e-issue-1.sh
+./scripts/e2e-issue-1.sh   # invitations, CKAN and GeoServer access, session refresh
+./scripts/e2e-issue-3.sh   # CKAN country organisations, refusal, logout
+./scripts/e2e-issue-5.sh   # Platform login redirect, areas and 403 page
 ```
 
 ### Google login

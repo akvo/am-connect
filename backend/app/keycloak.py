@@ -2,6 +2,7 @@
 password login goes through the password grant here, not a browser redirect."""
 
 import os
+from collections.abc import Iterable
 
 import httpx2
 import jwt
@@ -99,6 +100,21 @@ def can_sign_in(user_id: str) -> bool:
             if r.json():
                 return True
         return False
+
+
+def users_by_role(roles: Iterable[str]) -> list[dict]:
+    """Users holding any of `roles` directly, each with `roles`: those of them they hold."""
+    users: dict[str, dict] = {}
+    with _admin() as kc:
+        for name in roles:
+            # shortcut: first 1000 holders per role; page with `first` when a role has more
+            r = kc.get(f"/roles/{name}/users", params={"max": 1000})
+            r.raise_for_status()
+            for user in r.json():
+                users.setdefault(user["id"], {**user, "roles": set()})["roles"].add(
+                    name
+                )
+    return list(users.values())
 
 
 def delete_user(user_id: str) -> None:
