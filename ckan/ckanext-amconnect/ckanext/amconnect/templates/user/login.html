@@ -2,7 +2,9 @@
 
 {% block form %}
   {{ super() }}
-  {% if h.amconnect_google_login and h.amconnect_google_login() %}
-    <p><a class="btn btn-default" href="{{ h.url_for('amconnect_keycloak.google_login') }}">{{ _('Continue with Google') }}</a></p>
+  {% if h.amconnect_login_providers %}
+    {% for idp, label in h.amconnect_login_providers().items() %}
+      <p><a class="btn btn-default" href="{{ h.url_for('amconnect_keycloak.login', idp=idp) }}">{{ _('Continue with %(label)s', label=label) }}</a></p>
+    {% endfor %}
   {% endif %}
 {% endblock %}

@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { googleLoginEnabled, signIn } from "@/auth";
+import { loginProviders, signInWith } from "@/auth";
 import { api } from "@/lib/api";
 import { Input } from "@/components/input";
 
@@ -27,9 +27,9 @@ async function accept(token: string, form: FormData): Promise<void> {
   redirect("/login?notice=accepted");
 }
 
-async function googleLogin(): Promise<void> {
+async function idpLogin(idp: string): Promise<void> {
   "use server";
-  await signIn("keycloak", { redirectTo: "/" });
+  await signInWith(idp);
 }
 
 export default async function AcceptInvitePage({
@@ -62,11 +62,11 @@ export default async function AcceptInvitePage({
         <Input name="password" type="password" placeholder="Password" autoComplete="new-password" />
         <button className="w-full rounded bg-black p-2 text-white">Create account</button>
       </form>
-      {googleLoginEnabled && (
-        <form action={googleLogin}>
-          <button className="w-full rounded border p-2">Continue with Google instead</button>
+      {loginProviders.map(({ idp, label }) => (
+        <form key={idp} action={idpLogin.bind(null, idp)}>
+          <button className="w-full rounded border p-2">Continue with {label} instead</button>
         </form>
-      )}
+      ))}
     </main>
   );
 }

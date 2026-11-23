@@ -25,6 +25,7 @@ services:
       KEYCLOAK_INTERNAL_URL: http://keycloak:8080
       PLATFORM_CLIENT_SECRET: ${PLATFORM_CLIENT_SECRET:-dev-platform-secret}
       GOOGLE_LOGIN_ENABLED: ${GOOGLE_CLIENT_ID:+true}
+      MICROSOFT_LOGIN_ENABLED: ${AZURE_CLIENT_ID:+true}
 
   backend:
     build: ./backend
@@ -90,6 +91,7 @@ services:
       CKANEXT__AMCONNECT__KEYCLOAK__INTERNAL_URL: http://keycloak:8080
       CKANEXT__AMCONNECT__KEYCLOAK__CLIENT_SECRET: ${CKAN_CLIENT_SECRET:-dev-ckan-secret}
       CKANEXT__AMCONNECT__KEYCLOAK__GOOGLE_LOGIN: ${GOOGLE_CLIENT_ID:+true}
+      CKANEXT__AMCONNECT__KEYCLOAK__MICROSOFT_LOGIN: ${AZURE_CLIENT_ID:+true}
       # demo only: seed example datasets / run the demo harvest sources at start
       AMCONNECT_SEED: ${AMCONNECT_SEED:-false}
       AMCONNECT_HARVEST: ${AMCONNECT_HARVEST:-false}
@@ -191,7 +193,7 @@ services:
       - ./keycloak/themes/amconnect:/opt/keycloak/themes/amconnect:ro
 
   # applies keycloak/realm-amconnect.json to the running Keycloak on every `up`:
-  # creates or updates roles, clients, flows and the Google login; leaves users alone
+  # creates or updates roles, clients, flows and the Google and Microsoft logins; leaves users alone
   keycloak-config:
     image: adorsys/keycloak-config-cli:6.5.1-26.5.5
     depends_on:
@@ -212,6 +214,10 @@ services:
       CKAN_CLIENT_SECRET: ${CKAN_CLIENT_SECRET:-dev-ckan-secret}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-unset}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-unset}
+      AZURE_CLIENT_ID: ${AZURE_CLIENT_ID:-unset}
+      AZURE_CLIENT_SECRET: ${AZURE_CLIENT_SECRET:-unset}
+      # an empty tenant would mean Microsoft's multi-tenant endpoint; `unset` fails instead
+      AZURE_TENANT_ID: ${AZURE_TENANT_ID:-unset}
     volumes:
       - ./keycloak/realm-amconnect.json:/config/realm-amconnect.json:ro
 

@@ -41,8 +41,8 @@ They are created by `db/init/20-databases.sql` on the first start of an empty vo
 ## Users and access
 
 Keycloak holds every account; users never see a Keycloak page. Platform and CKAN show
-their own login forms and check passwords with Keycloak server-side. Google login only
-redirects through Keycloak to Google.
+their own login forms and check passwords with Keycloak server-side. Google and Microsoft
+login only redirect through Keycloak to Google or Microsoft.
 
 | Realm role | Grants |
 |---|---|
@@ -75,7 +75,7 @@ may invite, or only designated administrators, and this assumes every one. The n
 `docker compose up -d` deletes the role from Keycloak; users keep their other roles.
 
 Invitations are emailed (see Mailpit); the link lets the invitee set name and password,
-or continue with Google. Until the invitee does, inviting the same email again replaces
+or continue with Google or Microsoft. Until the invitee does, inviting the same email again replaces
 the invitation. Passwords need 8 characters and must not be the email; repeated failed
 logins lock the account for a while. The super admin comes from `SUPERADMIN_EMAIL` /
 `SUPERADMIN_PASSWORD` in `.env`.
@@ -107,6 +107,24 @@ Check the whole flow against the running stack (with demo data loaded, see below
 
 Google logs in only an invited email; anyone else sees an AMConnect-styled Keycloak page
 asking for an invitation.
+
+### Microsoft login
+
+1. In the Microsoft Entra admin center, App registrations → New registration:
+   - Supported account types: **this organizational directory only** (single tenant).
+   - Redirect URI (Web): `http://localhost:8180/realms/amconnect/broker/microsoft/endpoint`.
+2. Certificates & secrets → New client secret. Keep the default API permission
+   `User.Read` (Microsoft Graph), which Keycloak uses to read the email.
+3. Put the application (client) ID, the secret value and the directory (tenant) ID in
+   `.env` as `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET` and `AZURE_TENANT_ID`, then
+   `docker compose up -d`. The "Continue with Microsoft" buttons appear.
+
+Like Google, Microsoft logs in only an invited email. Only accounts of the tenant in
+`AZURE_TENANT_ID` can log in. Keycloak links a Microsoft login to the AMConnect user with
+the same email, and a tenant administrator can put any email on an account of their own,
+so that tenant's administrators can take over any AMConnect account, the Super Admin
+included. Never set it to `organizations` or `common`, which extends that to every
+tenant. See [ADR 0002](docs/adr/0002-microsoft-login-single-tenant.md).
 
 ## Backend
 

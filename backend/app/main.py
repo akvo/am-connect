@@ -33,7 +33,7 @@ SessionDep = Annotated[Session, Depends(get_session)]
 
 def record_user(claims: dict, session: Session) -> None:
     """Keeps the user record in step with Keycloak. Checked on every request because
-    Google sign-in never passes through /auth/login."""
+    Google and Microsoft sign-in never pass through /auth/login."""
     email, name = claims.get("email", ""), claims.get("name")
     user = session.get(User, claims["sub"])
     if user and (user.email, user.name) == (email, name):
@@ -187,7 +187,7 @@ def open_invitation(token: str, session: Session) -> Invitation:
     gone = HTTPException(status.HTTP_404_NOT_FOUND, "Invitation not found or expired")
     if not invitation or invitation.accepted_at or invitation.expires_at < utcnow():
         raise gone
-    # joined with Google instead: the link must not set a password on a live account
+    # joined with Google or Microsoft instead: the link must not set a password on a live account
     if keycloak.can_sign_in(invitation.keycloak_user_id):
         invitation.accepted_at = utcnow()
         session.add(invitation)
