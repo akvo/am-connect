@@ -25,6 +25,9 @@ LABELS = {
     **{role: f"AOCP – {name}" for role, name in AOCP_ROLES.items()},
 }
 ACCESS_SWITCHES = {"geoserver-access"}
+# Platform areas and the roles that open them; None means anyone signed in
+MANAGERS = {"super-admin", "asec", *AOCP_ROLES}
+AREAS: dict[str, set[str] | None] = {"cms": MANAGERS, "users": MANAGERS, "webgis": None}
 
 
 class NotAllowed(Exception):
@@ -34,6 +37,11 @@ class NotAllowed(Exception):
 def roles_of(claims: dict) -> set[str]:
     """App roles in the token; the bare `aocp` composite is left out, it names no country."""
     return set(claims.get("realm_access", {}).get("roles", [])) & LABELS.keys()
+
+
+def areas_of(claims: dict) -> set[str]:
+    roles = roles_of(claims)
+    return {area for area, need in AREAS.items() if need is None or roles & need}
 
 
 def grantable_roles(claims: dict) -> set[str]:

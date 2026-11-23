@@ -6,14 +6,22 @@ from datetime import timedelta
 from typing import Annotated
 
 import jwt
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, params, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, delete, select, text
 
 from app import keycloak, mail
-from app.access import LABELS, NotAllowed, check_grant, grantable_roles, roles_of
+from app.access import (
+    AREAS,
+    LABELS,
+    NotAllowed,
+    areas_of,
+    check_grant,
+    grantable_roles,
+    roles_of,
+)
 from app.db import engine
 from app.models import Invitation, User, utcnow
 
@@ -60,6 +68,21 @@ def current_user(
 
 
 UserDep = Annotated[dict, Depends(current_user)]
+
+
+def require_roles(*roles: str) -> params.Depends:
+    """Endpoint dependency: the user holds one of `roles` (none given: anyone signed in)."""
+
+    def check(user: UserDep) -> dict:
+        if roles and not roles_of(user) & set(roles):
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "You have no access to this")
+        return user
+
+    return Depends(check)
+
+
+def require_area(area: str) -> params.Depends:
+    return require_roles(*(AREAS[area] or ()))
 
 
 def hash_token(token: str) -> str:
@@ -114,6 +137,7 @@ def me(user: UserDep) -> dict:
         "name": user.get("name"),
         "roles": sorted(roles_of(user)),
         "grantable_roles": sorted(grantable_roles(user)),
+        "areas": sorted(areas_of(user)),
         "role_labels": LABELS,
     }
 
