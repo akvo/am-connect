@@ -9,12 +9,13 @@ import jwt
 from fastapi import Depends, FastAPI, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, col, delete, select, text
 
 from app import keycloak, mail
 from app.access import LABELS, NotAllowed, check_grant, grantable_roles, roles_of
 from app.db import engine
-from app.models import Invitation, utcnow
+from app.models import Invitation, User, utcnow
 
 PLATFORM_URL = os.environ.get("PLATFORM_URL", "http://localhost:3000")
 INVITE_TTL = timedelta(days=7)
@@ -27,16 +28,37 @@ def get_session() -> Iterator[Session]:
         yield session
 
 
+SessionDep = Annotated[Session, Depends(get_session)]
+
+
+def record_user(claims: dict, session: Session) -> None:
+    """Keeps the user record in step with Keycloak. Checked on every request because
+    Google sign-in never passes through /auth/login."""
+    email, name = claims.get("email", ""), claims.get("name")
+    user = session.get(User, claims["sub"])
+    if user and (user.email, user.name) == (email, name):
+        return
+    user = user or User(id=claims["sub"], email=email)
+    user.email, user.name = email, name
+    session.add(user)
+    try:
+        session.commit()
+    except IntegrityError:  # a parallel first request created it
+        session.rollback()
+
+
 def current_user(
     creds: Annotated[HTTPAuthorizationCredentials, Depends(HTTPBearer())],
+    session: SessionDep,
 ) -> dict:
     try:
-        return keycloak.verify(creds.credentials)
+        claims = keycloak.verify(creds.credentials)
     except jwt.PyJWTError:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid or expired token")
+    record_user(claims, session)
+    return claims
 
 
-SessionDep = Annotated[Session, Depends(get_session)]
 UserDep = Annotated[dict, Depends(current_user)]
 
 
