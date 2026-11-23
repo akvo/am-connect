@@ -82,8 +82,10 @@ def test_find_user_returns_first_match_or_none(kc):
 
 
 def test_create_user_creates_then_maps_roles(kc):
-    role = {"id": "r-ckan", "name": "ckan-access"}
-    kc.routes[("GET", f"{ADMIN}/roles/ckan-access")] = httpx2.Response(200, json=role)
+    role = {"id": "r-geo", "name": "geoserver-access"}
+    kc.routes[("GET", f"{ADMIN}/roles/geoserver-access")] = httpx2.Response(
+        200, json=role
+    )
     kc.routes[("POST", f"{ADMIN}/users")] = httpx2.Response(
         201, headers={"Location": f"http://keycloak{ADMIN}/users/u-new"}
     )
@@ -91,7 +93,7 @@ def test_create_user_creates_then_maps_roles(kc):
         204
     )
 
-    assert keycloak.create_user("b@example.org", ["ckan-access"]) == "u-new"
+    assert keycloak.create_user("b@example.org", ["geoserver-access"]) == "u-new"
     created = json.loads(kc.requests[-2].content)
     assert created["email"] == "b@example.org" and created["emailVerified"] is True
     assert json.loads(kc.requests[-1].content) == [role]

@@ -41,10 +41,13 @@ def test_logout_ends_keycloak_session(monkeypatch):
 
 
 def test_me_lists_app_roles_only(monkeypatch, db):
-    claims = {"sub": "u1", "realm_access": {"roles": ["ckan-access", "offline_access"]}}
+    claims = {
+        "sub": "u1",
+        "realm_access": {"roles": ["geoserver-access", "offline_access"]},
+    }
     monkeypatch.setattr(keycloak, "verify", lambda token: claims)
     r = client.get("/me", headers={"authorization": "Bearer t"})
-    assert r.json()["roles"] == ["ckan-access"]
+    assert r.json()["roles"] == ["geoserver-access"]
     assert r.json()["grantable_roles"] == []
 
 

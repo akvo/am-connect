@@ -52,13 +52,19 @@ redirects through Keycloak to Google.
 | `aocp` | any AOCP country user; part of every `aocp-<country>`, never granted alone |
 | `amvest-admin` | AMVest forum admin; grants nothing on the Platform or CKAN |
 | `amvest-user` | AMVest forum participant; a default role, so every account has it |
-| `ckan-access` | can log in to CKAN; without it CKAN refuses the login and creates no account |
 | `geoserver-access` | can read `amconnect` GeoServer layers with `Authorization: Bearer <access token>` |
 
 Anyone who can grant one of the roles above can invite (Platform `/invite`), and can also
-grant `ckan-access` and `geoserver-access` if they hold them. Nobody grants
+grant `geoserver-access` if they hold it. Nobody grants
 `super-admin`. The rules live in `backend/app/access.py`; the terms in
 [GLOSSARY.md](GLOSSARY.md).
+
+CKAN lets in `super-admin`, `asec` and `aocp-<country>` holders; everyone else is refused
+and gets no CKAN account. Each Member State has a country organisation named by its code
+(`id`, `vn`), created at CKAN start. At every CKAN login the user's memberships follow
+their roles: `asec` is editor of every country organisation, `aocp-<country>` of its own,
+and `super-admin` is a CKAN sysadmin. Only country organisations are changed; a role
+change applies at the user's next CKAN login, not to open sessions or API tokens.
 
 Country scope is a role, not a user attribute or group, because GeoServer's Keycloak
 filter reads only the token's realm roles. A user may hold several `aocp-<country>` roles.

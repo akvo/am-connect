@@ -3,6 +3,10 @@
 echo "[amconnect] ckan db upgrade -p harvest"
 ckan -c "$CKAN_INI" db upgrade -p harvest || echo "[amconnect] harvest db upgrade FAILED (CKAN will still start)"
 
+# One organisation per Member State: real structure, so not behind AMCONNECT_SEED.
+echo "[amconnect] seeding country organisations"
+ckan -c "$CKAN_INI" amconnect seed-countries || echo "[amconnect] country organisations FAILED (CKAN will still start)"
+
 # Seed the AMConnect example organisation + datasets (idempotent).
 if [ "${AMCONNECT_SEED:-true}" = "true" ]; then
   echo "[amconnect] seeding example datasets"

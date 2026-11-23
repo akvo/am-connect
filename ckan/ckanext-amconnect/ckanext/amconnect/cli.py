@@ -1,6 +1,7 @@
 """``ckan amconnect`` commands.
 
 seed        create/update one CKAN dataset per layer in the drop folder + the harvest sources
+seed-countries  create the missing country organisations (one per Member State)
 harvest     run every registered harvest source synchronously (gather/fetch/import), for demos
 extent      print the spatial extent GeoServer reports for a layer (what `seed` stores)
 
@@ -36,6 +37,7 @@ import ckan.plugins.toolkit as tk
 import click
 
 from ckanext.amconnect import services
+from ckanext.amconnect.keycloak import COUNTRIES
 
 DATA_EXT = (".geojson", ".gpkg", ".shp", ".tif", ".tiff")
 RASTER_EXT = (".tif", ".tiff")
@@ -366,6 +368,23 @@ def _seed_harvest_sources(ctx):
 @click.group(short_help="AMConnect POC commands")
 def amconnect():
     pass
+
+
+@amconnect.command("seed-countries")
+def seed_countries():
+    """Create the country organisations that do not exist yet; existing ones, and their
+    members, are left as they are."""
+    ctx = {"user": _sysadmin_name(), "ignore_auth": True}
+    for code, title in COUNTRIES.items():
+        try:
+            tk.get_action("organization_show")(dict(ctx), {"id": code})
+            continue
+        except tk.ObjectNotFound:
+            pass
+        tk.get_action("organization_create")(
+            dict(ctx), {"name": code, "title": title}
+        )
+        click.echo(f"organization {code}: created")
 
 
 @amconnect.command()
