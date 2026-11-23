@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { api, getMe } from "@/lib/api";
+import { api, requireArea } from "@/lib/api";
 import { Input } from "@/components/input";
 
 async function invite(form: FormData): Promise<void> {
@@ -14,11 +14,13 @@ async function invite(form: FormData): Promise<void> {
   if (!r.ok) {
     const { detail } = await r.json();
     redirect(
-      `/invite?error=${encodeURIComponent(typeof detail === "string" ? detail : "Invalid input")}`,
+      `/users/invite?error=${encodeURIComponent(typeof detail === "string" ? detail : "Invalid input")}`,
     );
   }
-  redirect(`/invite?sent=${encodeURIComponent(email)}`);
+  redirect(`/users/invite?sent=${encodeURIComponent(email)}`);
 }
+
+export const instant = false; // see layout.tsx
 
 export default async function InvitePage({
   searchParams,
@@ -26,12 +28,11 @@ export default async function InvitePage({
   searchParams: Promise<{ sent?: string; error?: string }>;
 }): Promise<ReactElement> {
   const { sent, error } = await searchParams;
-  const me = await getMe();
-  if (!me.grantable_roles.length) redirect("/");
+  const me = await requireArea("users");
 
   return (
     <main className="mx-auto mt-16 w-full max-w-md space-y-6 p-4">
-      <Link href="/" className="underline">
+      <Link href="/users" className="underline">
         ← Back
       </Link>
       <h1 className="text-2xl font-semibold">Invite a user</h1>
@@ -48,7 +49,9 @@ export default async function InvitePage({
             </label>
           ))}
         </fieldset>
-        <button className="w-full rounded bg-black p-2 text-white">Send invitation</button>
+        <button className="w-full rounded bg-primary p-2 text-white hover:bg-primary-hover">
+          Send invitation
+        </button>
       </form>
     </main>
   );

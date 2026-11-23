@@ -1,36 +1,21 @@
-import Link from "next/link";
 import type { ReactElement } from "react";
-import { signOut } from "@/auth";
 import { getMe, visibleLayers } from "@/lib/api";
 
-export default async function Home(): Promise<ReactElement> {
+export const instant = false; // see layout.tsx
+
+export default async function Dashboard(): Promise<ReactElement> {
   const me = await getMe();
   const layers = await visibleLayers();
 
-  async function logout() {
-    "use server";
-    await signOut({ redirectTo: "/login" });
-  }
-
   return (
-    <main className="mx-auto mt-16 w-full max-w-2xl space-y-6 p-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">AMConnect</h1>
-        <form action={logout}>
-          <button className="rounded border px-3 py-1">Log out</button>
-        </form>
-      </div>
+    <main className="mx-auto mt-8 w-full max-w-2xl space-y-6 p-4">
+      <h1 className="text-2xl font-semibold">Dashboard</h1>
       <section>
         <p>
           Logged in as <strong>{me.name ?? me.email}</strong> ({me.email})
         </p>
         <p>Roles: {me.roles.map((r) => me.role_labels[r] ?? r).join(", ") || "none"}</p>
       </section>
-      {me.grantable_roles.length > 0 && (
-        <Link href="/invite" className="inline-block rounded bg-black px-3 py-2 text-white">
-          Invite a user
-        </Link>
-      )}
       <section>
         <h2 className="text-lg font-semibold">GeoServer layers you can see</h2>
         {typeof layers === "string" ? (

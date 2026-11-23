@@ -32,6 +32,9 @@ async function idpLogin(idp: string): Promise<void> {
   await signInWith(idp);
 }
 
+// Nothing to prerender: the invitation is looked up per request.
+export const instant = false;
+
 export default async function AcceptInvitePage({
   params,
   searchParams,
@@ -60,7 +63,9 @@ export default async function AcceptInvitePage({
         <Input name="first_name" placeholder="First name" />
         <Input name="last_name" placeholder="Last name" />
         <Input name="password" type="password" placeholder="Password" autoComplete="new-password" />
-        <button className="w-full rounded bg-black p-2 text-white">Create account</button>
+        <button className="w-full rounded bg-primary p-2 text-white hover:bg-primary-hover">
+          Create account
+        </button>
       </form>
       {loginProviders.map(({ idp, label }) => (
         <form key={idp} action={idpLogin.bind(null, idp)}>

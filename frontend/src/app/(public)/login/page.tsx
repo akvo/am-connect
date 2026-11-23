@@ -1,7 +1,7 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
 import type { ReactElement } from "react";
-import { loginProviders, signIn, signInWith } from "@/auth";
+import { afterLogin, loginProviders, signIn, signInWith } from "@/auth";
 import { Input } from "@/components/input";
 
 const MESSAGES: Record<string, string> = {
@@ -15,25 +15,33 @@ async function passwordLogin(form: FormData): Promise<void> {
     await signIn("credentials", {
       email: form.get("email"),
       password: form.get("password"),
-      redirectTo: "/",
+      redirectTo: afterLogin(form.get("callbackUrl")),
     });
   } catch (e) {
-    if (e instanceof AuthError) redirect(`/login?error=${e.type}`);
+    if (e instanceof AuthError) {
+      const back = new URLSearchParams({ error: e.type });
+      const callbackUrl = form.get("callbackUrl");
+      if (typeof callbackUrl === "string" && callbackUrl) back.set("callbackUrl", callbackUrl);
+      redirect(`/login?${back}`);
+    }
     throw e; // signIn redirects by throwing
   }
 }
 
-async function idpLogin(idp: string): Promise<void> {
+async function idpLogin(idp: string, callbackUrl?: string): Promise<void> {
   "use server";
-  await signInWith(idp);
+  await signInWith(idp, callbackUrl);
 }
+
+// Nothing to prerender: its messages and return page come from the URL.
+export const instant = false;
 
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; notice?: string }>;
+  searchParams: Promise<{ error?: string; notice?: string; callbackUrl?: string }>;
 }): Promise<ReactElement> {
-  const { error, notice } = await searchParams;
+  const { error, notice, callbackUrl } = await searchParams;
 
   return (
     <main className="mx-auto mt-24 w-full max-w-sm space-y-6 p-4">
@@ -43,6 +51,7 @@ export default async function LoginPage({
         <p className="text-red-700">{MESSAGES[error] ?? "Login failed. Please try again."}</p>
       )}
       <form action={passwordLogin} className="space-y-3">
+        <input type="hidden" name="callbackUrl" value={callbackUrl ?? ""} />
         <Input name="email" type="email" placeholder="Email" autoComplete="username" />
         <Input
           name="password"
@@ -50,10 +59,12 @@ export default async function LoginPage({
           placeholder="Password"
           autoComplete="current-password"
         />
-        <button className="w-full rounded bg-black p-2 text-white">Log in</button>
+        <button className="w-full rounded bg-primary p-2 text-white hover:bg-primary-hover">
+          Log in
+        </button>
       </form>
       {loginProviders.map(({ idp, label }) => (
-        <form key={idp} action={idpLogin.bind(null, idp)}>
+        <form key={idp} action={idpLogin.bind(null, idp, callbackUrl)}>
           <button className="w-full rounded border p-2">Continue with {label}</button>
         </form>
       ))}

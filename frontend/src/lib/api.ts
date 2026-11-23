@@ -1,7 +1,13 @@
-import { redirect } from "next/navigation";
+import { headers as requestHeaders } from "next/headers";
+import { forbidden, redirect } from "next/navigation";
+import { cache } from "react";
 import { auth } from "@/auth";
+import { RETURN_TO } from "@/proxy";
 
 const BACKEND = process.env.BACKEND_INTERNAL_URL;
+
+/** Platform areas; the backend decides which roles open each. */
+export type Area = "cms" | "users" | "webgis";
 
 export type Me = {
   id: string;
@@ -9,8 +15,15 @@ export type Me = {
   name: string | null;
   roles: string[];
   grantable_roles: string[];
+  areas: Area[];
   role_labels: Record<string, string>;
 };
+
+/** To login, then back to the page asked for. */
+async function toLogin(): Promise<never> {
+  const page = (await requestHeaders()).get(RETURN_TO);
+  redirect(page ? `/login?${new URLSearchParams({ callbackUrl: page })}` : "/login");
+}
 
 /** Calls the backend; with `asUser`, sends the signed-in user's token (or goes to /login). */
 export async function api(path: string, init: RequestInit = {}, asUser = true): Promise<Response> {
@@ -18,16 +31,24 @@ export async function api(path: string, init: RequestInit = {}, asUser = true): 
   headers.set("content-type", "application/json");
   if (asUser) {
     const session = await auth();
-    if (!session?.accessToken) redirect("/login");
+    if (!session?.accessToken) return toLogin();
     headers.set("authorization", `Bearer ${session.accessToken}`);
   }
   return fetch(`${BACKEND}${path}`, { ...init, headers, cache: "no-store" });
 }
 
-export async function getMe(): Promise<Me> {
+/** The signed-in user, fetched once per request (the layout and the page both ask). */
+export const getMe = cache(async (): Promise<Me> => {
   const r = await api("/me");
-  if (r.status === 401) redirect("/login");
+  if (r.status === 401) return toLogin();
   return r.json();
+});
+
+/** Page guard: shows the 403 page unless the user's roles open `area`. */
+export async function requireArea(area: Area): Promise<Me> {
+  const me = await getMe();
+  if (!me.areas.includes(area)) forbidden();
+  return me;
 }
 
 /** Layer names the user may read; GeoServer checks the Keycloak token itself. */

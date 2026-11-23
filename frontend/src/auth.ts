@@ -21,7 +21,7 @@ async function backend(path: string, body: unknown): Promise<Tokens | null> {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  return r.ok ? r.json() : null;
+  return r.ok && r.status !== 204 ? r.json() : null; // logout answers 204, no body
 }
 
 function fromTokens(t: Tokens): Partial<JWT> {
@@ -102,8 +102,15 @@ declare module "next-auth/jwt" {
   }
 }
 
-export async function signInWith(idp: string): Promise<void> {
-  // the bound argument comes from the browser; an unknown one would show Keycloak's page
+/** Where to go after login: `callbackUrl` if it is a path on this site (no open redirect). */
+export function afterLogin(callbackUrl: unknown): string {
+  return typeof callbackUrl === "string" && /^\/(?![/\\])/.test(callbackUrl)
+    ? callbackUrl
+    : "/dashboard";
+}
+
+export async function signInWith(idp: string, callbackUrl?: string): Promise<void> {
+  // the bound arguments come from the browser; an unknown idp would show Keycloak's page
   if (!loginProviders.some((p) => p.idp === idp)) throw new Error("Unknown login provider");
-  await signIn("keycloak", { redirectTo: "/" }, { kc_idp_hint: idp });
+  await signIn("keycloak", { redirectTo: afterLogin(callbackUrl) }, { kc_idp_hint: idp });
 }
